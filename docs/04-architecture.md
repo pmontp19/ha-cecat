@@ -159,7 +159,13 @@ class Phase(StrEnum):
     UNRECOGNIZED = "unrecognized"
 
 PHASE_ORDER = (Phase.NONE, Phase.PREALERTA, Phase.ALERTA, Phase.EMERGENCIA)
+ACTIVATING_PHASES = frozenset({Phase.ALERTA, Phase.EMERGENCIA})
 ```
+
+`PHASE_ORDER` serveix per **ordenar** (quina fase és més greu) i `ACTIVATING_PHASES` per
+**classificar** (quina fase activa el pla). Són preguntes diferents i es responen amb eines
+diferents: la segona és una pertinença, i per tant no pot llançar amb cap valor, ni tan sols amb
+`UNRECOGNIZED`.
 
 `UNRECOGNIZED` **queda fora de `PHASE_ORDER`** deliberadament: no se sap on col·locar un literal
 desconegut a l'escala de severitat, i inventar-ho seria pitjor que no ordenar-lo. Regla:
@@ -189,11 +195,15 @@ en sortir d'un literal desconegut. Per això la regla d'aparellament de §5 **ex
 la branca de `phase_changed`**, i la comparació de severitats no hi arriba mai amb un valor
 sense ordre.
 
-Conseqüència sobre aquest codi: **el sentinel `-1` ja no és portant.** Es manté igualment com a
-defensa en profunditat, perquè una funció que llança per un valor esperable és una trampa per a
-qualsevol futur cridant, però ja no és el que fa segura la comparació. Un sentinel la feina del
-qual era deixar que un valor sense ordre sobrevisqués a una comparació ordenada era el senyal
-que la comparació no s'hauria d'estar fent.
+Conseqüència sobre aquest codi: **el sentinel `-1` ja no és portant, i això és cert de tots els
+cridants, no només d'un.** `_severity` té exactament **un** lloc de crida a tot el disseny, la
+branca additiva de `phase_changed` de §5, on la tercera condició ja garanteix que les dues fases
+són a `PHASE_ORDER`. L'altre lloc que abans hi comparava, `resolve_activated`, ja no ho fa: deriva
+per pertinença a `ACTIVATING_PHASES`, de manera que una fase irreconeixible hi dona `False` sense
+tocar cap ordre. Es manté igualment com a defensa en profunditat, perquè una funció que llança
+per un valor esperable és una trampa per a qualsevol futur cridant, però ja no és el que fa
+segura cap comparació. Un sentinel la feina del qual era deixar que un valor sense ordre
+sobrevisqués a una comparació ordenada era el senyal que la comparació no s'hauria d'estar fent.
 
 Això no posa `UNRECOGNIZED` a `PHASE_ORDER` i per tant no toca AD-8: li dona una posició definida i
 no comparable, que és el que AD-8 volia dir.
@@ -230,7 +240,7 @@ def resolve_activated(raw: str | None, phase: Phase) -> tuple[bool, str | None]:
         if key == "si":
             return True, None
     # Absent, buit o irreconeixible: mana la fase (AD-6).
-    derived = _severity(phase) >= _severity(Phase.ALERTA)
+    derived = phase in ACTIVATING_PHASES
     return derived, ACTIVAT_ABSENT if raw is None else raw
 ```
 
@@ -247,9 +257,13 @@ Tres propietats que cal preservar:
 2. **El fallback és la fase, no un `True` incondicional.** És literalment el que diu AD-6:
    `plafase` mana, `plaactivat` és derivat. Una prealerta amb un `plaactivat` corrupte segueix
    donant `off`, que és correcte.
-3. **`Phase.UNRECOGNIZED` queda fora de `PHASE_ORDER`** (AD-8), per tant `_severity` hi dona `-1` i el
-   derivat és `False`. Fase desconeguda **i** `plaactivat` desconegut és l'únic cas sense cap
-   senyal utilitzable; els dos literals van als diagnostics.
+3. **La derivació és una pertinença, no una comparació d'ordre.** `ACTIVATING_PHASES` és el
+   `frozenset({Phase.ALERTA, Phase.EMERGENCIA})`, i `Phase.UNRECOGNIZED` simplement no hi és, per
+   tant el derivat és `False` **sense cap comparació de severitat i sense cap possibilitat de
+   llançar**. Fase desconeguda **i** `plaactivat` desconegut és l'únic cas sense cap senyal
+   utilitzable; els dos literals van als diagnostics. Aquesta forma és deliberada: una pertinença
+   expressa exactament la pregunta ("aquesta fase activa el pla?") i no arrossega l'ordre, que
+   aquí no fa falta.
 
 **El camp absent no pot ser silenciós.** Que `plaactivat` desaparegui de la resposta és un canvi
 d'esquema sobre el camp que governa un sensor `SAFETY`: la integració passaria a derivar
@@ -438,7 +452,12 @@ for key in removed:
          duration_minutes=_duration(previous[key]))
 for key in added:
     if current[key].phase is not Phase.NONE:
-        fire(EVENT_PLAN_PHASE_STARTED, current[key])
+        # Origen: només si se n'ha retirat exactament UNA d'aquell acrònim.
+        origins = [k for k in removed if k[0] == key[0]]
+        origin  = previous[origins[0]] if len(origins) == 1 else None
+        fire(EVENT_PLAN_PHASE_STARTED, current[key],
+             previous_phase=origin.phase if origin else None,
+             previous_phase_raw=origin.phase_raw if origin else None)
 
 # 2. A MÉS, quan es donen les tres condicions, un event de canvi.
 for acronym in {a for a, _ in added | removed}:
@@ -457,6 +476,15 @@ for acronym in {a for a, _ in added | removed}:
              previous_phase=old.phase, previous_phase_raw=old.phase_raw,
              escalation=_severity(new.phase) > _severity(old.phase))
 ```
+
+**`previous_phase` a `phase_started`, i els seus dos casos nuls.** L'event diu de quina fase ve,
+i és el que permet a un consumidor distingir una **pujada** d'una **baixada** sense escoltar cap
+altre event. S'omple quan al mateix cicle s'ha retirat **exactament una** clau d'aquell acrònim.
+És `null` quan no se n'ha retirat cap (la fila apareix de nou, no ve d'enlloc) i també quan se
+n'ha retirat **més d'una**, perquè aleshores no es pot dir de quina ve i inventar-ho seria la
+mateixa mena de mentida que un aparellament endevinat. Noteu que **no** depèn de la condició de
+§4.2: una transició cap a `UNRECOGNIZED` no afegeix cap `phase_changed`, però el seu
+`phase_started` sí que porta `previous_phase` amb la fase d'origen, que és informació certa.
 
 **Una transició del mateix acrònim emet tres events**, no un: `phase_ended` de la fase que
 s'acaba (amb la seva durada), `phase_started` de la que comença, i `phase_changed` que descriu
@@ -529,7 +557,10 @@ Cinc propietats que es deriven directament de les traps:
    sol `DESACTIVACIO` en 623 dies ([`01`](01-data-sources.md) §7.4). Mateix patró
    `_prune_vanished` que `ha-incendiscat` va necessitar per a la vista ArcGIS. Com que ja no se
    suprimeix mai, **sempre porta `duration_minutes`**, també per a les fases intermèdies d'un
-   episodi, que amb la supressió eren irrecuperables.
+   episodi, que amb la supressió no s'emetien enlloc. L'exactitud de la xifra en una fase
+   intermèdia, però, depèn de l'obert 3 ([`01`](01-data-sources.md) §14): amb edició de fila en
+   lloc de substitució, `started_at` es queda a l'inici de l'episodi i la durada surt inflada
+   ([`03`](03-feature-spec.md) §4.3).
 4. **Dues files simultànies del mateix acrònim en fases diferents generen dos `phase_started`,
    un per cadascuna**, i cap no es perd. És el cas que la clau composta existeix per cobrir.
 5. **El càlcul de `escalation` no pot llançar, i per construcció.** La tercera condició
@@ -595,13 +626,19 @@ un futur canvi d'àmbit.
 
 | Fitxer | Entitat | Notes d'implementació |
 | --- | --- | --- |
-| `sensor.py` | `max_phase` | `SensorDeviceClass.ENUM` amb `options` incloent-hi `"unrecognized"`. Icona fixa `mdi:shield-alert-outline` via `icons.json` |
+| `sensor.py` | `max_phase` | `SensorDeviceClass.ENUM` amb `options` incloent-hi `"unrecognized"`. Icona fixa `mdi:shield-alert-outline` via `icons.json`. Atributs `acronyms` (llista de cadenes) i `total_plans`: **`acronyms`, no `plans`**, perquè el nom digui la forma |
 | `sensor.py` | `plans` | `state_class = MEASUREMENT`. L'estat és `len(state.plans)`, és a dir el nombre de parells `(acronym, phase)`. L'atribut `plans` es serialitza des dels `dataclasses` amb `asdict` i ordre estable per `(acronym, phase)` |
 | `sensor.py` | `last_updated` | `SensorDeviceClass.TIMESTAMP`, `entity_category = DIAGNOSTIC`. Parseig del `Last-Modified` amb `email.utils.parsedate_to_datetime` |
-| `binary_sensor.py` | `plan_activated` | `BinarySensorDeviceClass.SAFETY`. `is_on` = qualsevol fila amb `activated`, calculat segons §4 i **mai** amb `plaactivat == "SI"` |
+| `binary_sensor.py` | `plan_activated` | `BinarySensorDeviceClass.SAFETY`. `is_on` = qualsevol fila amb `activated`, calculat segons §4 i **mai** amb `plaactivat == "SI"`. Atribut `acronyms` (llista de cadenes), **no `plans`** |
 
 Cap entitat retorna `None` com a estat quan la resposta és `[]`: són `none`, `0` i `off`
 ([`03`](03-feature-spec.md) criteri 1). `unavailable` queda reservat al guard de dades velles.
+
+**El nom `plans` designa una sola forma a tota la integració**: la llista d'objectes de
+`sensor.…_plans`. Les dues llistes de cadenes (`max_phase` i `plan_activated`) es diuen
+`acronyms`. Un mateix nom amb dues formes incompatibles fa que un `selectattr('acronym', …)`
+apuntat per error a l'entitat equivocada peti, i amb `entity_id` dependents de l'idioma
+([`03`](03-feature-spec.md) §3) apuntar-hi malament és fàcil.
 
 L'atribut `plans` s'ordena per la clau sencera **`(acronym, phase)`**, no per `acronym` sol,
 perquè un canvi d'ordre a la resposta no ha de produir un canvi d'atribut espuri i perquè dues
@@ -643,7 +680,7 @@ fallaria la majoria dels dies i semblaria un error de connexió.
 | `plafase` desconeguda | `Phase.UNRECOGNIZED` + `warning` una vegada per literal. **Cap excepció.** Una transició cap a `UNRECOGNIZED` o des d'`UNRECOGNIZED` emet `phase_ended` + `phase_started`, amb el literal cru a `previous_phase_raw` i a `phase_raw` respectivament, i **cap `phase_changed`**: un costat no és a `PHASE_ORDER` (§5) |
 | `plaacronim` desconegut | Fila ingerida, `name` = acrònim, `warning` una vegada |
 | `plaactivat` amb una grafia tolerada (`SI`, `si`, ` SI `, `Si`, `NO`, `no`) | Es normalitza i es fa servir **tal qual**. Cap derivació i **cap `warning`**: és el cas normal, i tolerar la grafia és justament el punt (§4) |
-| `plaactivat` absent, buit o amb un literal irreconeixible (`true`, `Activat`…) | **`activated` es deriva de `plafase`**: cert si la fase és `ALERTA` o superior. Mai es llegeix com a "no activat". `warning` una vegada per literal; l'absència s'hi registra com a `"<absent>"` (§4) |
+| `plaactivat` absent, buit o amb un literal irreconeixible (`true`, `Activat`…) | **`activated` es deriva de `plafase`**: cert si la fase és a `ACTIVATING_PHASES`, és a dir `ALERTA` o `EMERGÈNCIA`. Mai es llegeix com a "no activat". `warning` una vegada per literal; l'absència s'hi registra com a `"<absent>"` (§4) |
 | Dues files amb el **mateix `plaacronim`** en fases diferents | Dues entrades a l'estat, dos `phase_started`, recompte 2. La clau és `(acronym, phase)` (§5) |
 | 3 cicles fallits consecutius | `cecat_service_degraded`; un altre amb `recovered: true` al recuperar-se |
 | Dades més velles que `max(6 × interval, 1 h)` | `available = False` a totes les entitats |
@@ -708,7 +745,7 @@ files essent certa, per tant no és cobertura de les tres i no s'hi ha de confia
 | `test_api.py` | 200, 304, timeout, 4xx, 5xx, cos no-JSON, cos no-llista, `If-Modified-Since` enviat |
 | `test_models.py` | Normalització de fase amb i sense diacrítics, `resolve_activated` amb `SI`/`NO`/`Si`/` SI `/absent/irreconeixible, `resolve_started_at` amb les dues fonts i cap, camps absents, `descripcio` bruta |
 | `test_coordinator.py` | Reconciliació amb la clau `(acronym, phase)`, dues files del mateix acrònim, `available` per dades velles, `warning` una sola vegada, 304 conserva estat |
-| `test_events.py` | Els 4 events, l'aparellament 1-a-1 que dona `phase_changed`, el cas ambigu que dona `started`/`ended` plans, el no-event del PDF canviat, el no-event del cicle fallit, `escalation` |
+| `test_events.py` | Els 4 events. Que **cada clau afegida dona `phase_started` i cada clau retirada dona `phase_ended`, sempre**; que l'aparellament només hi **afegeix** `phase_changed` quan es compleixen les tres condicions; els dos casos que no l'afegeixen (més d'una alta o baixa per acrònim, i un costat fora de `PHASE_ORDER`); `previous_phase` i els seus dos casos nuls; el no-event del PDF canviat; el no-event del cicle fallit; `escalation` |
 | `test_sensor.py`, `test_binary_sensor.py` | Estats i atributs contra cada fixture |
 | `test_config_flow.py` | `[]` crea l'entrada, `cannot_connect`, options flow, `single_config_entry` |
 | `test_diagnostics.py` | Forma de l'export |
@@ -751,10 +788,10 @@ per mantenir-les. `pyproject.toml` amb el mateix conjunt de regles de `ruff` que
 | AD-2 | `requirements: []` | Un paquet propi a PyPI | El client són ~90 línies. Mateixa política que `ha-incendiscat`, `ha-avisoscat` i `dpc` |
 | AD-3 | `$select=:*,*` i `:created_at` com a font primària de l'inici de fase | Només `fasedatahora` | ISO-8601 en UTC contra `DD/MM/YYYY HH:MM` amb el fus implícit. `started_at_source` fa la degradació observable ([`01`](01-data-sources.md) §7.2) |
 | AD-4 | `If-Modified-Since`, mai `ETag` | `ETag` condicional | Mesurat: l'`ETag` arriba amb el sufix `--gzip` duplicat i retorna 200; `If-Modified-Since` retorna 304 ([`01`](01-data-sources.md) §1) |
-| AD-5 | Identitat de l'episodi = `(acronym, phase)`, **i és també la clau del `dict` d'estat**. `phase_started` i `phase_ended` s'emeten **sempre**, per a cada clau afegida i retirada; `phase_changed` és **additiu** i demana **tres** condicions: una alta, una baixa, i **les dues fases a `PHASE_ORDER`** | `:id` de Socrata, hash de la fila, indexar per `plaacronim` sol, o **suprimir** el parell quan s'emet `phase_changed` | `comunicatpdf` canvia dins de la mateixa fase i `:id` canvia en un canvi de fase ([`01`](01-data-sources.md) trap 11). Indexar per l'acrònim sol perdria una de dues files simultànies de PROCICAT, que §3.2 nota 2 fa plausible. I la supressió deixava sense senyal qualsevol consumidor d'un sol event precisament a la transició que més importa: amb ella, escalar a `EMERGÈNCIA` no emetia cap `phase_started` (§5) |
+| AD-5 | Identitat de l'episodi = `(acronym, phase)`, **i és també la clau del `dict` d'estat**. `phase_started` i `phase_ended` s'emeten **sempre**, per a cada clau afegida i retirada; `phase_changed` és **additiu** i demana **tres** condicions: una alta, una baixa, i **les dues fases a `PHASE_ORDER`**. `phase_started` porta `previous_phase`, omplert quan s'ha retirat exactament una clau de l'acrònim i `null` altrament | `:id` de Socrata, hash de la fila, indexar per `plaacronim` sol, o **suprimir** el parell quan s'emet `phase_changed` | `comunicatpdf` canvia dins de la mateixa fase i `:id` canvia en un canvi de fase ([`01`](01-data-sources.md) trap 11). Indexar per l'acrònim sol perdria una de dues files simultànies de PROCICAT, que §3.2 nota 2 fa plausible. I la supressió deixava sense senyal qualsevol consumidor d'un sol event precisament a la transició que més importa: amb ella, escalar a `EMERGÈNCIA` no emetia cap `phase_started` (§5) |
 | AD-6 | `plafase` mana, `plaactivat` és derivat: normalitzat com `plafase`, `False` només amb `no`, i derivat de la fase si no es reconeix | Filtrar o comparar per `plaactivat == 'SI'` | `plaactivat: "NO"` és la prealerta, el 51,4% dels comunicats: filtrar amaga mitja font. I la descripció oficial escriu "(Si/No)" mentre les dades donen `SI`/`NO`, per tant una comparació estricta pot deixar un sensor `SAFETY` a `off` durant una emergència ([`01`](01-data-sources.md) traps 1 i 14, §3.3) |
 | AD-7 | Un atribut `plans` en lloc de N entitats per pla | 13-18 binary sensors | `plaacronim` no és un conjunt tancat (`PENTA`, `NOPLA`). Una llista blanca quedaria obsoleta sense avís ([`03`](03-feature-spec.md) §7) |
-| AD-8 | `Phase.UNRECOGNIZED` fora de `PHASE_ORDER`, i **`phase_changed` no s'afegeix mai quan un costat hi és fora**: la transició surt com a `phase_ended` + `phase_started` | Col·locar-la a dalt o a baix de l'escala, o comparar-la igualment recolzant-se en un sentinel | No se sap on va un literal desconegut i inventar-ho és pitjor que no ordenar-lo. La correcció no és fer que la comparació sobrevisqui a un valor sense ordre, és **no fer-la**: la tercera condició de §5 garanteix que `_severity` només rep fases ordenables. El sentinel `-1` es manté com a defensa en profunditat, no com la peça que fa segura la comparació, perquè una funció que llança per un valor esperable és una trampa per a qualsevol futur cridant |
+| AD-8 | `Phase.UNRECOGNIZED` fora de `PHASE_ORDER`, i **`phase_changed` no s'afegeix mai quan un costat hi és fora**: la transició surt com a `phase_ended` + `phase_started` | Col·locar-la a dalt o a baix de l'escala, o comparar-la igualment recolzant-se en un sentinel | No se sap on va un literal desconegut i inventar-ho és pitjor que no ordenar-lo. La correcció no és fer que la comparació sobrevisqui a un valor sense ordre, és **no fer-la**: la tercera condició de §5 garanteix que `_severity` només rep fases ordenables. El sentinel `-1` es manté com a defensa en profunditat, no com la peça que fa segura la comparació, perquè una funció que llança per un valor esperable és una trampa per a qualsevol futur cridant. La branca additiva és **l'únic** lloc que crida `_severity`: `resolve_activated` deriva per pertinença a `ACTIVATING_PHASES` (§4) i no hi compara ordres |
 | AD-9 | Normalització de fase sense diacrítics | Comparació exacta amb `"EMERGÈNCIA"` | La fase més greu mai s'ha observat en viu; un accent no pot fer-la perdre ([`01`](01-data-sources.md) trap 14) |
 | AD-10 | Mapatge propi acrònim → nom, amb fallback a l'acrònim | `planom` | `planom` és igual a `plaacronim` a 5/5 files observades ([`01`](01-data-sources.md) trap 4) |
 | AD-11 | Icones `mdi:` fixes, `plaicona` només com a atribut | `plaicona` com a `entity_picture` | La llicència restringeix l'ús dels símbols oficials i `ico_VENTCAT.png` dona 404 ([`01`](01-data-sources.md) §11.3, §6.3) |

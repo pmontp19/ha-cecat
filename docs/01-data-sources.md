@@ -241,7 +241,7 @@ Regla, la mateixa tolerància que `plafase` (trap 14) i coherent amb AD-6 "`plaf
 | --- | --- |
 | `no` | **`False`** |
 | `si` | `True` |
-| Absent, buit, o qualsevol altre literal | **Es deriva de la fase**: `True` si la fase és `ALERTA` o superior a `PHASE_ORDER`, `False` altrament. `warning` una sola vegada per literal, i **el camp absent també avisa**: hi entra amb un sentinel explícit perquè un canvi d'esquema sobre el camp que governa el sensor `SAFETY` no pugui passar en silenci ([`04`](04-architecture.md) §4) |
+| Absent, buit, o qualsevol altre literal | **Es deriva de la fase**: `True` si la fase és `ALERTA` o `EMERGÈNCIA`, `False` altrament (una pertinença, no una comparació d'ordre, per tant una fase irreconeixible hi dona `False` sense poder llançar). `warning` una sola vegada per literal, i **el camp absent també avisa**: hi entra amb un sentinel explícit perquè un canvi d'esquema sobre el camp que governa el sensor `SAFETY` no pugui passar en silenci ([`04`](04-architecture.md) §4) |
 
 `activated = False` **només** quan el valor normalitzat és exactament `no`. Un literal que no
 reconeixem no pot llegir-se mai com a "no passa res": el que fa és cedir la decisió a `plafase`,

@@ -192,7 +192,7 @@ dades velles.
 **Descripció.** `binary_sensor.py` amb `plan_activated`, `device_class = SAFETY`.
 
 **Criteris d'acceptació.**
-- [ ] `alerta_2026_08_06` → `on`, atribut `plans = ["INUNCAT"]`
+- [ ] `alerta_2026_08_06` → `on`, atribut **`acronyms`** `= ["INUNCAT"]`. L'atribut **no** es diu `plans`: aquest nom és exclusiu de la llista d'objectes de `sensor.…_plans` (§3.1 i §3.3 de [`03`](03-feature-spec.md))
 - [ ] `prealerta_2024_12_02` → **`off`** (el pla no està activat), mentre `max_phase` és `prealerta`
 - [ ] `buit` → `off`
 - [ ] `emergencia_SYNTHETIC` → `on`
@@ -224,6 +224,9 @@ segons la regla de tres condicions del §5 de [`04`](04-architecture.md).
 - [ ] **Exemple treballat de dos cicles**, seguint el criteri 6c de [`03`](03-feature-spec.md): partint de l'estat anterior, la fila arriba com a `EMERGÈNCIA` i dispara un `phase_ended` (`previous_phase = unrecognized`, `previous_phase_raw` amb el literal cru) i un `phase_started` (`phase = emergencia`), **cap** `phase_changed`. És el camí que fa que l'escalada a la fase més greu arribi al blueprint sense tocar-lo
 - [ ] `_severity` no rep mai una fase fora de `PHASE_ORDER` des de la branca d'aparellament: un test amb un doble o una asserció ho comprova
 - [ ] Tot `phase_changed` porta `phase_raw` i `previous_phase_raw`, i tot `phase_ended` porta `previous_phase_raw`, també quan les fases són reconegudes
+- [ ] Tot `phase_started` porta `previous_phase` i `previous_phase_raw` (§4.1 de [`03`](03-feature-spec.md)), amb els **tres** casos assertats per separat: la fase d'origen quan s'ha retirat exactament una clau de l'acrònim; **`null`** quan la fila apareix de nou i no n'hi havia cap; **`null`** quan se n'han retirat més d'una i l'origen és ambigu
+- [ ] `{(INUNCAT, alerta)}` → `{(INUNCAT, unrecognized)}`: el `phase_started` porta `previous_phase = alerta` encara que **no** s'hi afegeixi cap `phase_changed`. `previous_phase` no depèn de la condició d'aparellament
+- [ ] Transició `emergencia → alerta`: el `phase_started` porta `phase = alerta` i `previous_phase = emergencia`, i el `phase_changed` additiu porta `escalation: false`
 - [ ] `{(INUNCAT, alerta)}` → `{}` en un cicle **vàlid** dispara `cecat_plan_phase_ended` amb `duration_minutes` calculat
 - [ ] `duration_minutes` hi és **també per a una fase intermèdia**: a la transició `prealerta → alerta`, el `phase_ended` de la prealerta el porta. Amb la supressió era irrecuperable
 - [ ] `{(INUNCAT, alerta)}` → cicle **fallit** dispara **cap** event
@@ -311,6 +314,8 @@ llengua de referència. `brand/icon.png` i `icon@2x.png`.
 - [ ] **`phase: unrecognized` passa el filtre amb els tres valors de `min_phase`** (`prealerta`, `alerta`, `emergencia`), sense excepció (§5.1 de [`03`](03-feature-spec.md), criteri 15b)
 - [ ] **Cap error de plantilla amb cap valor de `phase`**, `unrecognized` inclòs: un test renderitza la condició amb **les quatre fases que un event pot portar** (`prealerta`, `alerta`, `emergencia`, `unrecognized`) × els tres `min_phase`, i cap de les dotze combinacions peta. `none` no hi entra perquè cap payload d'event no el pot portar: `normalise_phase` no retorna mai `Phase.NONE` i `none` només existeix com a estat agregat de `max_phase`. La condició comprova `unrecognized` abans de qualsevol `index()`, i el curtcircuit de l'`or` és el que ho garanteix
 - [ ] El missatge renderitzat per a `phase: unrecognized` **diu que la fase no s'ha reconegut i mostra `phase_raw`**, en lloc de presentar `unrecognized` com si fos una fase coneguda
+- [ ] El missatge **distingeix els quatre casos** de §5.2 de [`03`](03-feature-spec.md): fase no reconeguda, entrada amb `previous_phase` nul, pujada i baixada. Els textos de pujada i de baixada han de ser distingibles: una transició `emergencia → alerta` **no** pot renderitzar el mateix text que una entrada en alerta des de zero
+- [ ] **Cap error de plantilla en el missatge** amb cap combinació de `phase` × `previous_phase`, incloent-hi `unrecognized` a qualsevol dels dos costats i `previous_phase` nul: un test les renderitza totes. Els guards de `unrecognized` i de nul van **abans** de qualsevol `index()`, que és el que ho garanteix
 - [ ] `test_blueprint.py` valida l'esquema del YAML
 
 **Verificació.** `pytest tests/test_blueprint.py` verd + importació manual a una instància real.
@@ -339,7 +344,7 @@ repositori personalitzat.
 
 ### Checkpoint final: v1
 
-- [ ] Tots els criteris d'acceptació del §8 de [`03-feature-spec.md`](03-feature-spec.md) marcats: els 18 numerats més 3b, 4b, 5b, 6a, 6b, 6c, 11b i 15b
+- [ ] Tots els criteris d'acceptació del §8 de [`03-feature-spec.md`](03-feature-spec.md) marcats: els 18 numerats més 3b, 4b, 5b, 6a, 6b, 6c, 11b, 11c, 11d, 11e i 15b
 - [ ] CI completa verda: `ruff check`, `ruff format --check`, `pytest --cov-fail-under=95`, `hassfest`, `hacs/action`
 - [ ] Soak de 48 h en una instància real sense cap `ERROR` al log ni entitat encallada a `unavailable`
 - [ ] Almenys **un** canvi real observat durant el soak (activació, canvi de fase o desactivació) amb l'event corresponent al bus
@@ -364,7 +369,7 @@ repositori personalitzat.
 | **`EMERGÈNCIA` no s'observa mai durant el desenvolupament** (15 en 6 anys) | Mitjà. És la fase que més importa | Fixture sintètic marcat com a tal (T2) + normalització sense diacrítics (T3). El camí de codi existeix i està cobert abans de veure'l en viu |
 | **`$select=:*,*` deixa de funcionar** o `:created_at` desapareix | Mitjà | `started_at_source` fa la degradació observable; el fallback a `fasedatahora` ja està implementat i testat (T3). Comprovació en viu obligatòria a T4 |
 | **La grafia real de `plaacronim` per als PA del PROCICAT** no és cap de les 4 conegudes | Baix. Afecta el nom mostrat | Fallback a l'acrònim cru + `warning` una vegada (T3). Es resol amb la primera activació observada |
-| **Un canvi de fase no substitueix la fila sinó que l'edita**, i `:created_at` es queda enganxat a la fase antiga | Mitjà | Els events van per `(acronym, phase)`, no per `started_at` (T8): el canvi es detecta igualment. Només l'atribut `started_at` seria vell, i `started_at_source` ho fa visible |
+| **Un canvi de fase no substitueix la fila sinó que l'edita**, i `:created_at` es queda enganxat a la fase antiga | Mitjà | Els events van per `(acronym, phase)`, no per `started_at` (T8): el canvi es detecta igualment i **cap event es perd**. El que en surt afectat és tot el que deriva de `started_at`: l'atribut `started_at`, i també **`duration_minutes`** de `phase_ended`, que en una fase intermèdia comptaria l'episodi sencer en lloc de només aquella fase. `started_at_source` fa visible d'on surt la marca. És l'obert 3 de [`01`](01-data-sources.md) §14 |
 | **El servei canvia de forma sense avís** (és una font pública sense SLA) | Alt | Tolerància amb `.get()` a tota la cadena, `CecatFormatError` que conserva l'estat, `cecat_service_degraded`, i diagnostics amb la resposta crua (T10) |
 | **Pocs canvis durant el desenvolupament** i el soak no observa cap event real | Baix | El ritme mesurat és de 0,86 episodis/dia ([`01`](01-data-sources.md) §7.3): 48 h de soak en veuen algun amb alta probabilitat. Si no, els tests amb fixtures reals ja cobreixen tots els camins |
 | **Sobrecàrrega d'un servei públic** | Alt reputacionalment | `If-Modified-Since` a cada petició, un sol `GET` per cicle, mínim d'1 min per contracte, per defecte 5 min. El cas normal és un 304 amb cos buit |

@@ -254,7 +254,7 @@ una per acrònim, sobre 21 acrònims. No sé qui és ni què construeix. Ens ser
 | Sondeig per defecte de **5 min**, configurable 1-60 | `nina` (5 min) i la mesura de cadència de [`01`](01-data-sources.md) §7.3. Contra `dpc` (30 min) |
 | `If-Modified-Since` en lloc d'`ETag` | Mesurat a [`01`](01-data-sources.md) §1. Cap dels precedents ho fa |
 | **Prealerta com a estat separat**, no com a "no activat" | Buit detectat a §6. `plafase` manda, `plaactivat` és derivat |
-| Vocabulari amb vàlvula d'escapament (`unknown`) i `warning` una sola vegada | `nina` (`SEVERITY_VALUES` acaba amb `"unknown"`), `ha-avisoscat` (meteor desconegut) |
+| Vocabulari amb vàlvula d'escapament (el nostre valor és `unrecognized`) i `warning` una sola vegada | `nina` (`SEVERITY_VALUES` acaba amb `"unknown"`), `ha-avisoscat` (meteor desconegut) |
 | Events al bus, no accions de servei | `ha-incendiscat`, `ha-avisoscat`. Contra `nina` (`get_details`) |
 | Reconciliació per absència (`_prune_vanished`) per detectar desactivacions | `ha-incendiscat`; necessari per [`01`](01-data-sources.md) §7.4 |
 | Identitat de l'episodi = `(plaacronim, plafase)`, mai `:id` ni el hash de la fila | Error observat a §6.1 + [`01`](01-data-sources.md) trap 11 |
