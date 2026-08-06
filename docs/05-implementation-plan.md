@@ -90,10 +90,14 @@ import de Home Assistant.
 - [ ] `alerta_2026_08_06.json`, que és la **mateixa fila sense camps de sistema** → `started_at = 2026-08-05T11:18:00+00:00`, `started_at_source = "fasedatahora"`. Els dos camins donen el mateix minut sobre dades reals
 - [ ] `prealerta_2024_12_02.json` → `phase = PREALERTA`, **`activated = False`**, `description` amb el `\n` conservat
 - [ ] `EMERGÈNCIA`, `EMERGENCIA`, `emergència` i ` Emergencia ` donen tots `Phase.EMERGENCIA`
-- [ ] `plaactivat` = `SI`, `si`, ` SI ` → `activated = True`; `NO`, `no`, ` No ` → **`activated = False`**
-- [ ] `plaactivat` **absent**, buit, o amb un literal inesperat (`true`, `Activat`), sobre una fila d'`EMERGÈNCIA` o d'`ALERTA` → **`activated = True`**, i el literal cru queda exposat perquè el coordinator hi pugui fer el `warning`
+- [ ] `plaactivat` = `SI`, `si`, ` SI ` → `activated = True`; `NO`, `no`, ` No ` → **`activated = False`**. En tots sis casos el segon element de `resolve_activated` és `None`: són literals reconeguts i **no** han de generar cap `warning`
+- [ ] `plaactivat` amb un literal inesperat (`true`, `Activat`) o buit (`""`), sobre una fila d'`EMERGÈNCIA` o d'`ALERTA` → **`activated = True`**, i el segon element és **el literal cru**, perquè el coordinator hi pugui fer el `warning`
+- [ ] `plaactivat` **absent** sobre una fila d'`EMERGÈNCIA` o d'`ALERTA` → **`activated = True`** i el segon element és el sentinel **`"<absent>"`**, no `None`: un camp que desapareix no pot ser silenciós
+- [ ] `emergencia_plaactivat_rar_SYNTHETIC` → les **tres** files donen `activated = True`, assertat **fila a fila** i no amb l'agregat de T7. Les tres claus `(acronym, phase)` són distintes perquè els acrònims ho són
 - [ ] Els mateixos valors irreconeixibles sobre una fila de `PREALERTA` → `activated = False` (mana la fase, AD-6)
 - [ ] `plaactivat` irreconeixible **i** `plafase` irreconeixible → `activated = False`, cap excepció, els dos literals conservats
+- [ ] `_severity(Phase.UNKNOWN)` retorna `-1` i **no llança**; `_severity` de les quatre fases de `PHASE_ORDER` retorna la seva posició
+- [ ] `_is_escalation` dona `False` si qualsevol dels dos costats no és a `PHASE_ORDER`, en **les dues** direccions (`alerta → unknown` i `unknown → alerta`), i `True` només amb `prealerta → alerta` i similars
 - [ ] Fase desconeguda → `Phase.UNKNOWN`, i `phase_raw` conserva el literal
 - [ ] `plaacronim` desconegut (`PENTA`, `NOPLA`) → fila vàlida amb `name` = l'acrònim
 - [ ] `comunicatpdf`/`plaicona` absents o no-`dict` → `None`, sense excepció
@@ -168,7 +172,7 @@ dades velles.
 `ATTRIBUTION`, i les tres entitats `max_phase`, `plans`, `last_updated`.
 
 **Criteris d'acceptació.**
-- [ ] L'entitat de recompte és `sensor.cecat_plans` amb `translation_key = "plans"`, **no** `active_plans`: compta files en qualsevol fase, prealerta inclosa
+- [ ] L'entitat de recompte és `sensor.proteccio_civil_catalunya_plans` amb `translation_key = "plans"`, **no** `active_plans`: compta files en qualsevol fase, prealerta inclosa
 - [ ] `buit` → `max_phase = "none"`, `plans = 0`. **Cap entitat a `unavailable`**
 - [ ] `prealerta_2024_12_02` → `max_phase = "prealerta"`, `plans = 1`, atribut `activated = 0`, `prealerta = 1`
 - [ ] `alerta_2026_08_06` → `max_phase = "alerta"`; l'element de `plans` té els 9 camps del §3.2 de [`03`](03-feature-spec.md)
@@ -192,7 +196,7 @@ dades velles.
 - [ ] `prealerta_2024_12_02` → **`off`** (el pla no està activat), mentre `max_phase` és `prealerta`
 - [ ] `buit` → `off`
 - [ ] `emergencia_SYNTHETIC` → `on`
-- [ ] `emergencia_plaactivat_rar_SYNTHETIC` → **`on`** amb `plaactivat` = `Si`, amb ` SI `, i **amb el camp absent**. Cap dels tres pot deixar un sensor `SAFETY` a `off` durant una emergència (§3.3 de [`03`](03-feature-spec.md), criteri 5b)
+- [ ] `emergencia_plaactivat_rar_SYNTHETIC` → **`on`**. ⚠️ Aquest criteri és **agregat**: el satisfaria qualsevol de les tres files essent certa, per tant **no** és la cobertura de les tres variants. Aquesta viu als criteris per fila de T3, i aquí només es comprova que l'agregació no perdi el senyal (§3.3 de [`03`](03-feature-spec.md), criteri 5b)
 - [ ] Cap comparació literal `== "SI"` al mòdul: `is_on` llegeix `activated`, que ja ve normalitzat de `models.py`
 
 **Verificació.** `pytest tests/test_binary_sensor.py` verd. El segon criteri és la prova que la
@@ -213,6 +217,9 @@ claus `(acronym, phase)` més la regla d'aparellament del §5 de [`04`](04-archi
 - [ ] `{(INUNCAT, alerta)}` → `{(INUNCAT, prealerta)}` dispara `cecat_plan_phase_changed` amb `escalation: false`
 - [ ] `{}` → `{(PROCICAT, prealerta), (PROCICAT, alerta)}` dispara **dos** `cecat_plan_phase_started`, un per fase. Cap dels dos es perd i no es col·lapsen
 - [ ] Cas ambigu: `{(PROCICAT, prealerta), (PROCICAT, alerta)}` → `{(PROCICAT, emergencia)}` dispara **dos** `phase_ended` i **un** `phase_started`, i **cap** `phase_changed`. No s'aparella res quan hi ha més d'una alta o més d'una baixa per acrònim
+- [ ] `{(INUNCAT, alerta)}` → el mateix acrònim amb un `plafase` **irreconeixible** dispara **un** `cecat_plan_phase_changed` amb `escalation: **false**` i **cap excepció**. El payload porta `phase_raw` amb el literal cru i `previous_phase_raw` amb `ALERTA` (criteri 6b de [`03`](03-feature-spec.md))
+- [ ] El camí invers, d'un `plafase` irreconeixible cap a `alerta`, també dona `escalation: false`: sortir d'`unknown` no és una escalada
+- [ ] Tot `phase_changed` porta `phase_raw` i `previous_phase_raw`, també quan les dues fases són reconegudes
 - [ ] `{(INUNCAT, alerta)}` → `{}` en un cicle **vàlid** dispara `cecat_plan_phase_ended` amb `duration_minutes` calculat
 - [ ] `{(INUNCAT, alerta)}` → cicle **fallit** dispara **cap** event
 - [ ] Només canvia `comunicatpdf` (mateix acrònim, mateixa fase) → **cap** event
@@ -262,7 +269,8 @@ hi afegeixi una heurística d'aparellament més endavant.
 resiliència del §8 de [`04`](04-architecture.md).
 
 **Criteris d'acceptació.**
-- [ ] L'export conté: config entry, **resposta crua** de l'últim cicle, `Last-Modified`, `unknown_phases`, `unknown_acronyms`, `consecutive_failures`
+- [ ] L'export conté: config entry, **resposta crua** de l'últim cicle, `Last-Modified`, `unknown_phases`, `unknown_acronyms`, **`unknown_activated`**, `consecutive_failures`. Els **tres** conjunts de literals irreconeguts, com diu el §3.6 de [`03`](03-feature-spec.md): sense `unknown_activated` no hi ha cap canal per veure un `plaactivat` inesperat al camp, que és el cas per al qual existeix el criteri 5b
+- [ ] Una fila amb `plaactivat` absent deixa `"<absent>"` a `unknown_activated` de l'export
 - [ ] `camps_absents_SYNTHETIC` no genera cap `KeyError` en cap capa
 - [ ] `pdf_url_accents_2026_07_03` es propaga fins a l'atribut **sense recodificar ni validar** la URL
 - [ ] Cada fila de la taula de §8 de [`04`](04-architecture.md) té un test a `test_resilience.py`
@@ -294,6 +302,7 @@ llengua de referència. `brand/icon.png` i `icon@2x.png`.
 - [ ] `min_phase` per defecte és **`alerta`**, no `prealerta` (589 prealertes en 623 dies)
 - [ ] El filtre per `plans` buit vol dir "tots"
 - [ ] Escolta `cecat_plan_phase_started` i `cecat_plan_phase_changed` amb `escalation: true`
+- [ ] La descripció del blueprint documenta el fals positiu conegut del filtre `escalation: true` (§5 de [`03`](03-feature-spec.md), obert 6): amb dos PA distints sota el mateix `plaacronim` pot notificar una escalada que no ha passat
 - [ ] `test_blueprint.py` valida l'esquema del YAML
 
 **Verificació.** `pytest tests/test_blueprint.py` verd + importació manual a una instància real.
@@ -322,7 +331,7 @@ repositori personalitzat.
 
 ### Checkpoint final: v1
 
-- [ ] Tots els criteris d'acceptació del §8 de [`03-feature-spec.md`](03-feature-spec.md) marcats: els 18 numerats més 3b, 4b i 5b
+- [ ] Tots els criteris d'acceptació del §8 de [`03-feature-spec.md`](03-feature-spec.md) marcats: els 18 numerats més 3b, 4b, 5b i 6b
 - [ ] CI completa verda: `ruff check`, `ruff format --check`, `pytest --cov-fail-under=95`, `hassfest`, `hacs/action`
 - [ ] Soak de 48 h en una instància real sense cap `ERROR` al log ni entitat encallada a `unavailable`
 - [ ] Almenys **un** canvi real observat durant el soak (activació, canvi de fase o desactivació) amb l'event corresponent al bus
@@ -356,7 +365,7 @@ repositori personalitzat.
 
 ## Qüestions obertes
 
-Cap bloqueja començar. Les **cinc primeres** són exactament les cinc que llista el veredicte del
+Cap bloqueja començar. Les **sis primeres** són exactament les sis que llista el veredicte del
 §14 de [`01-data-sources.md`](01-data-sources.md), amb la tasca on es tocarien afegida. Les
 **dues últimes no surten del veredicte**: són decisions de disseny que es podrien reobrir i que
 es deixen tancades aquí perquè no es discuteixin dues vegades.
@@ -368,5 +377,6 @@ es deixen tancades aquí perquè no es discuteixin dues vegades.
 | 3 | Un canvi de fase substitueix la fila o l'edita? | Veredicte, obert 3 | T3 (`resolve_started_at`), T8 (clau d'event) | Obert. Mitigat per la clau `(acronym, phase)` |
 | 4 | `plaicona` de VENTCAT i PLASEQTA (404) | Veredicte, obert 4 | Cap | ✅ Resolt: no fem servir `plaicona` com a icona (§11.3 de [`01`](01-data-sources.md)) |
 | 5 | Consumir el contenidor Azure de comunicats per a l'històric | Veredicte, obert 5 | Cap | ✅ Resolt: **no**. No és una API documentada (AD-14 de [`04`](04-architecture.md)) |
-| 6 | Entitat per pla (13-18 binary sensors) | Decisió de disseny, fora del veredicte | Cap | ✅ Resolt: **no**. `plaacronim` no és un conjunt tancat (§7 de [`03`](03-feature-spec.md)) |
-| 7 | Filtre per municipi amb `eqag-gzjs` | Decisió de disseny, fora del veredicte | Cap | ✅ Resolt: **no** a la v1. És un mapa de risc estàtic i donaria un fals positiu per als 947 municipis (§5 de [`01`](01-data-sources.md)) |
+| 6 | Dos PA distints sota el mateix `plaacronim` es poden confondre en un sol `phase_changed` amb `escalation: true` | Veredicte, obert 6 | T8 (regla d'aparellament), T12 (blueprint) | Obert. **Limitació acceptada, no mitigada**: documentada a §5 de [`04`](04-architecture.md) i a §4.2 i §5 de [`03`](03-feature-spec.md). Depèn de l'obert 1 |
+| 7 | Entitat per pla (13-18 binary sensors) | Decisió de disseny, fora del veredicte | Cap | ✅ Resolt: **no**. `plaacronim` no és un conjunt tancat (§7 de [`03`](03-feature-spec.md)) |
+| 8 | Filtre per municipi amb `eqag-gzjs` | Decisió de disseny, fora del veredicte | Cap | ✅ Resolt: **no** a la v1. És un mapa de risc estàtic i donaria un fals positiu per als 947 municipis (§5 de [`01`](01-data-sources.md)) |

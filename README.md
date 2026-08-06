@@ -35,9 +35,19 @@ matisos a [`docs/01-data-sources.md` §14](docs/01-data-sources.md#14-veredicte)
 | Domini de Home Assistant | `cecat` |
 | Distribució | HACS (repositori personalitzat, de moment) |
 | Font | [Dades obertes de la Generalitat](https://analisi.transparenciacatalunya.cat/d/wj9c-j6vf), sense clau ni quota |
-| Entitats previstes | 4 (3 + 1 de diagnòstic): `sensor.cecat_max_phase`, `sensor.cecat_plans`, `binary_sensor.cecat_plan_activated`, `sensor.cecat_last_updated` |
+| Entitats previstes | 4 (3 + 1 de diagnòstic): `sensor.proteccio_civil_catalunya_fase_maxima`, `sensor.proteccio_civil_catalunya_plans`, `binary_sensor.proteccio_civil_catalunya_pla_activat`, `sensor.proteccio_civil_catalunya_darrera_actualitzacio` |
 | Events previstos | 4: `cecat_plan_phase_started`, `cecat_plan_phase_changed`, `cecat_plan_phase_ended`, `cecat_service_degraded` |
 | Dependències de PyPI | cap (`requirements: []`) |
+
+> ⚠️ **Els `entity_id` d'aquesta taula corresponen a una instància de Home Assistant configurada
+> en català.** Home Assistant genera l'`entity_id` inicial a partir del **nom traduït** de
+> l'entitat, no de la clau de traducció interna, i el resol amb l'idioma del sistema en el moment
+> de crear l'entitat: en una instància en castellà o en anglès seran diferents (p. ex.
+> `sensor.proteccio_civil_catalunya_max_phase` en anglès en lloc de
+> `sensor.proteccio_civil_catalunya_fase_maxima`). Si un exemple d'automació no troba l'entitat,
+> comprova l'`entity_id` real a **Eines de desenvolupament → Estats**. És la mateixa convenció i
+> el mateix advertiment que documenta
+> [`ha-incendiscat`](https://github.com/pmontp19/ha-incendiscat#entitats).
 
 ## Documentació de disseny
 

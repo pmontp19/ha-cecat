@@ -8,6 +8,18 @@ Identificadors, claus de traducció i noms d'event en **anglès** (convenció de
 cadenes de cara a l'usuari surten de `translations/{ca,es,en}.json`, amb el català com a llengua
 de referència.
 
+> ⚠️ **Sobre els `entity_id` que apareixen en aquest document.** Amb
+> `_attr_has_entity_name = True` i `DeviceInfo(name="Protecció Civil Catalunya")`, Home Assistant
+> construeix l'`entity_id` com a **slug del nom del dispositiu + nom traduït de l'entitat**, no a
+> partir del domini ni de la `translation_key`. Els identificadors que es documenten aquí
+> (`sensor.proteccio_civil_catalunya_fase_maxima` i companyia) són doncs els d'una instància **en
+> català**, i una instància en castellà o en anglès en generarà uns altres, perquè el nom es
+> resol amb l'idioma del sistema en el moment de crear l'entitat. Les `translation_key`
+> (`max_phase`, `plans`, `plan_activated`, `last_updated`) i els noms d'event **no** depenen de
+> l'idioma. És exactament la convenció i l'advertiment que ja documenta `ha-incendiscat`
+> (`sensor.incendis_catalunya_darrera_actualitzacio`), i els exemples copiables s'han d'adaptar
+> comprovant l'`entity_id` real a **Eines de desenvolupament → Estats**.
+
 ---
 
 ## 1. Visió general
@@ -77,7 +89,7 @@ Integració config-flow-only. No es dona suport a `configuration.yaml`, igual qu
 
 ## 3. Entitats
 
-### 3.1 `sensor.cecat_max_phase` ⭐ l'entitat principal
+### 3.1 `sensor.proteccio_civil_catalunya_fase_maxima` ⭐ l'entitat principal
 
 La fase més alta activa a Catalunya. És la que va al dashboard i a les automacions.
 
@@ -104,7 +116,7 @@ Atributs:
 | `plans` | Llista d'acrònims que estan en aquesta fase màxima (p. ex. `["INUNCAT"]`) |
 | `total_plans` | Nombre total de files, en qualsevol fase |
 
-### 3.2 `sensor.cecat_plans`
+### 3.2 `sensor.proteccio_civil_catalunya_plans`
 
 Recompte de plans presents al feed, amb el detall complet als atributs. És l'única entitat que
 transporta la informació per pla, i és el que evita haver de crear entitats dinàmiques.
@@ -155,7 +167,7 @@ Decisions de l'esquema, cada una amb la seva raó:
 | `communique_url` és una cadena opaca | Pot contenir accents i apòstrofs sense codificar ([`01`](01-data-sources.md) trap 7). No es valida ni es reconstrueix |
 | Cap camp de territori | No existeix ([`01`](01-data-sources.md) §5) |
 
-### 3.3 `binary_sensor.cecat_plan_activated`
+### 3.3 `binary_sensor.proteccio_civil_catalunya_pla_activat`
 
 La pregunta binària: **hi ha algun pla realment activat?**
 
@@ -168,7 +180,7 @@ La pregunta binària: **hi ha algun pla realment activat?**
 
 **Aquesta entitat és el motiu pel qual la prealerta es modela com a estat de primera classe.**
 Una prealerta deixa `binary_sensor` a `off` (el pla no està activat: ho diu la font, "la
-prealerta no implica l'activació del pla") però deixa `sensor.cecat_max_phase` a `prealerta`.
+prealerta no implica l'activació del pla") però deixa `sensor.proteccio_civil_catalunya_fase_maxima` a `prealerta`.
 Les dues coses són certes alhora i cap consumidor conegut d'aquesta font les distingeix
 ([`02`](02-existing-integrations.md) §6).
 
@@ -198,7 +210,7 @@ el binary sensor a `on`. Una prealerta amb `NO` el deixa a `off`, com abans.
 
 Atributs: `plans` amb els acrònims activats.
 
-### 3.4 `sensor.cecat_last_updated` (diagnòstic)
+### 3.4 `sensor.proteccio_civil_catalunya_darrera_actualitzacio` (diagnòstic)
 
 | | |
 | --- | --- |
@@ -245,7 +257,7 @@ notificació sigui trivial.
 **Regla de noms, i és l'única que cal recordar: la família d'events parla de *fases* que
 comencen, canvien i acaben; el `binary_sensor` és l'únic que parla d'*activació*.** Cap event no
 es diu `activated`, i per tant cap no pot confondre's amb
-`binary_sensor.cecat_plan_activated`, que té la condició de veritat contrària per a la
+`binary_sensor.proteccio_civil_catalunya_pla_activat`, que té la condició de veritat contrària per a la
 prealerta: una prealerta que apareix **sí** que dispara `cecat_plan_phase_started` (una fase ha
 començat) i **no** encén el binary sensor (el pla no està activat). `phase_ended` també és més
 honest que "deactivated": una prealerta que desapareix no és cap desactivació, perquè el pla no
@@ -289,15 +301,36 @@ data:
   acronym: INUNCAT
   name: INUNCAT
   previous_phase: prealerta
+  previous_phase_raw: PREALERTA
   phase: alerta
-  escalation: true          # phase > previous_phase en l'ordre de severitat
+  phase_raw: ALERTA
+  escalation: true          # només si les dues fases són a PHASE_ORDER i phase > previous
   activated: true
   started_at: "2026-08-05T11:18:09+00:00"
 ```
 
+`phase_raw` i `previous_phase_raw` hi són **sempre**, igual que a l'atribut `plans` (§3.2), i no
+són decoració: si una fila passa a un `plafase` irreconeixible, aquest event és l'únic lloc on
+una automació pot veure el literal que ha arribat. Sense ells, la transició cap a `unknown`
+seria invisible.
+
+`escalation` és `false` sempre que qualsevol de les dues fases no sigui a `PHASE_ORDER`, i per
+tant també quan la transició va cap a `unknown` o en surt: la transició es reporta, però mai no
+es qualifica d'escalada ([`04`](04-architecture.md) §4).
+
 És l'event que captura la transició real observada a la font: `I-125912` va passar de prealerta
 (02/08 18:47) a activat (03/08 18:51) mantenint el mateix número d'incident
 ([`01`](01-data-sources.md) §7.2).
+
+⚠️ **`escalation: true` no és garantia que hagi escalat el mateix pla.** Sota la premissa de
+[`01`](01-data-sources.md) §3.2 nota 2, on cada pla d'actuació del PROCICAT reporta `PROCICAT`
+pelat a `plaacronim`, un cicle en què el pla d'actuació d'onada de calor deixa de seguir-se
+mentre el de ferrocarril apareix en `ALERTA` dona exactament una alta i una baixa per a
+`PROCICAT`, i s'emet un sol `cecat_plan_phase_changed` amb `escalation: true` que afirma una
+escalada quan de fet un pla s'ha acabat i n'ha començat un altre de diferent. És una limitació
+acceptada i inherent a la identitat declarada, amb les alternatives rebutjades documentades a
+[`04`](04-architecture.md) §5 i llistada com a obert 6 del veredicte
+([`01`](01-data-sources.md) §14).
 
 ### 4.3 `cecat_plan_phase_ended`
 
@@ -358,17 +391,26 @@ Per defecte `alerta` i **no** `prealerta`: amb 589 prealertes en 623 dies
 ([`01`](01-data-sources.md) §4) un blueprint que notifiqués prealertes seria soroll i faria que
 l'usuari el silenciés, perdent també les alertes.
 
+⚠️ **Fals positiu conegut d'aquest blueprint.** Com que filtra per `escalation: true`, hereta la
+limitació de §4.2: si dos plans d'actuació distints comparteixen `plaacronim` (el cas del
+PROCICAT), un cicle en què un acaba i un altre comença es veu com una escalada i el blueprint
+enviarà una notificació d'escalada per un episodi que no ha escalat. No es corregeix perquè
+corregir-ho requeriria corroborar la identitat amb `plaicona` o `descripcio`, dos camps que
+aquesta mateixa recerca ha trobat poc fiables ([`01`](01-data-sources.md) §6.3 i §9). Obert 6
+del veredicte.
+
 ---
 
 ## 6. Patrons d'automació que suportem
 
 | Vull… | Com |
 | --- | --- |
-| Avisar-me quan s'activi qualsevol pla | Trigger d'estat sobre `binary_sensor.cecat_plan_activated` a `on`, o el blueprint. **No** l'event `phase_started`, que també salta amb una prealerta |
+| Avisar-me quan s'activi qualsevol pla | Trigger d'estat sobre `binary_sensor.proteccio_civil_catalunya_pla_activat` a `on`, o el blueprint. **No** l'event `phase_started`, que també salta amb una prealerta |
 | Avisar-me només d'emergències | Trigger d'event `cecat_plan_phase_started` amb condició `phase == emergencia` |
-| Saber si l'INUNCAT concretament està en alerta | Template sobre l'atribut `plans` de `sensor.cecat_plans`. Vegeu el README |
+| Saber si l'INUNCAT concretament està en alerta | Template sobre l'atribut `plans` de `sensor.proteccio_civil_catalunya_plans`. Vegeu el README |
 | Creuar amb el Meteocat: avís greu **i** INUNCAT en alerta | Condició que creua `ha-avisoscat` i `ha-cecat`. Dues integracions a la mateixa instància, cap acoblament ([`02`](02-existing-integrations.md) §3) |
 | Registrar la durada dels episodis | Escoltar `cecat_plan_phase_ended` i llegir `duration_minutes` |
+| Notificar només escalades | Trigger d'event `cecat_plan_phase_changed` amb condició `escalation == true`, o el blueprint. **Amb el fals positiu de §4.2**: per a `PROCICAT`, dos plans d'actuació distints poden semblar una escalada d'un de sol |
 
 Exemple del cas per pla concret, que va al README:
 
@@ -376,7 +418,7 @@ Exemple del cas per pla concret, que va al README:
 condition:
   - condition: template
     value_template: >
-      {{ state_attr('sensor.cecat_plans', 'plans')
+      {{ state_attr('sensor.proteccio_civil_catalunya_plans', 'plans')
          | selectattr('acronym', 'eq', 'INUNCAT')
          | selectattr('phase', 'in', ['alerta', 'emergencia'])
          | list | count > 0 }}
@@ -411,8 +453,9 @@ condition:
 | 4 | Amb la captura real de dos plans (2026-01-19): `plans = 2` i l'atribut `plans` amb INUNCAT i NEUCAT |
 | 4b | Amb dues files del **mateix acrònim** en fases diferents (p. ex. PROCICAT en prealerta i PROCICAT en alerta): `plans = 2`, **les dues** a l'atribut `plans` ordenades per `(acronym, phase)`, i **dos** `cecat_plan_phase_started`. Cap de les dues es perd |
 | 5 | Amb un fixture sintètic d'`EMERGÈNCIA` (marcat com a sintètic): `max_phase = emergencia`. També amb `EMERGENCIA` sense accent |
-| 5b | Fila d'`EMERGÈNCIA` amb `plaactivat` = `Si`, = ` SI `, o **amb el camp absent**: `plan_activated = on` en els tres casos, i `warning` una sola vegada per literal irreconeixible. Amb `plaactivat = NO` sobre una prealerta: `off` |
+| 5b | Fila d'`EMERGÈNCIA` amb `plaactivat` = `Si`, = ` SI `, o **amb el camp absent**: `plan_activated = on` en els tres casos. `Si` i ` SI ` es reconeixen i **no** generen cap `warning`; el camp absent sí que en genera un, una sola vegada, registrat com a `<absent>`. Amb `plaactivat = NO` sobre una prealerta: `off`. Les tres files del fixture porten acrònims distints, si no col·lapsarien en una sola entrada |
 | 6 | `plafase` amb un literal desconegut: `max_phase = unknown`, `warning` una sola vegada, cap excepció |
+| 6b | Estat previ `{(INUNCAT, alerta)}` i el cicle següent l'`INUNCAT` arriba amb un `plafase` irreconeixible: una alta i una baixa per al mateix acrònim, per tant **un** `cecat_plan_phase_changed` amb `escalation: **false**`, `phase = unknown`, `phase_raw` amb el literal cru, i **cap excepció** que avorti el cicle |
 | 7 | `plaacronim` desconegut (`PENTA`, `NOPLA`): fila ingerida, `name` = l'acrònim, `warning` una vegada |
 | 8 | `comunicatpdf` absent, `plaicona` absent, `descripcio` buida: cap `KeyError`, atributs a `None` |
 | 9 | `comunicatpdf.url` amb accents i apòstrof (captura 2026-07-03): es propaga tal qual sense petar ni recodificar |

@@ -166,6 +166,43 @@ desconegut a l'escala de severitat, i inventar-ho seria pitjor que no ordenar-lo
 `max_phase` és `UNKNOWN` només si **cap** fila té una fase reconeguda; si n'hi ha alguna, mana la
 màxima reconeguda i el literal desconegut queda visible a `phase_raw` i als diagnostics.
 
+### Severitat: `_severity`, i per què no pot llançar mai (AD-8)
+
+```python
+def _severity(phase: Phase) -> int:
+    """Posició a l'escala de severitat. Mai llança: fora de PHASE_ORDER dona -1."""
+    return PHASE_ORDER.index(phase) if phase in PHASE_ORDER else -1
+
+
+def _is_escalation(new: Phase, old: Phase) -> bool:
+    if new not in PHASE_ORDER or old not in PHASE_ORDER:
+        return False          # cap costat comparable: es reporta, no s'escala
+    return _severity(new) > _severity(old)
+```
+
+`PHASE_ORDER.index(phase)` **pelat llançaria `ValueError` amb `Phase.UNKNOWN`**, i el camí que hi
+arriba no és hipotètic: si l'estat previ és `{(INUNCAT, ALERTA)}` i el cicle següent el
+publicador escriu un `plafase` irreconeixible, `normalise_phase` dona `UNKNOWN`, hi ha
+exactament una alta i una baixa per a `INUNCAT`, i la regla d'aparellament de §5 entra a la
+branca de `phase_changed` i compara les dues severitats. Una excepció allà avortaria **tot** el
+cicle d'actualització, que és exactament el contrari del criteri 6 de
+[`03`](03-feature-spec.md) ("cap excepció") i de la fila de `plafase` desconeguda de §8. El
+conjunt de plans no és tancat ([`01`](01-data-sources.md) §3.2, trap 5): un literal desconegut
+és **esperable**, no excepcional, i ha de degradar de manera segura i sorollosa, mai tombar el
+coordinator.
+
+Dues regles separades, i totes dues calen:
+
+1. **`_severity` mai llança.** El sentinel `-1` queda per sota de qualsevol fase real, amb el
+   mateix estil de guard que ja fa servir `resolve_activated`.
+2. **`escalation` és `false` si qualsevol dels dos costats no és a `PHASE_ORDER`.** El sentinel
+   sol no n'hi hauria prou: `_severity(ALERTA) > _severity(UNKNOWN)` seria `2 > -1`, cert, i
+   afirmaria una escalada en sortir d'un literal desconegut. Una transició cap a `UNKNOWN` o des
+   d'`UNKNOWN` **es reporta**, però no es qualifica mai d'escalada.
+
+Això no posa `UNKNOWN` a `PHASE_ORDER` i per tant no toca AD-8: li dona una posició definida i
+no comparable, que és el que AD-8 volia dir.
+
 ### Normalització de la fase
 
 ```python
@@ -184,8 +221,13 @@ la fase més greu del sistema.
 ### Normalització de `plaactivat`
 
 ```python
+ACTIVAT_ABSENT = "<absent>"   # sentinel: el camp no venia a la fila
+
 def resolve_activated(raw: str | None, phase: Phase) -> tuple[bool, str | None]:
-    """Retorna (activated, literal_no_reconegut)."""
+    """Retorna (activated, literal_a_registrar).
+
+    El segon element és None quan el literal s'ha reconegut i no cal cap warning.
+    """
     if raw is not None:
         key = _strip_diacritics(raw).strip().casefold()   # " SI " → "si", "Si" → "si"
         if key == "no":
@@ -193,11 +235,11 @@ def resolve_activated(raw: str | None, phase: Phase) -> tuple[bool, str | None]:
         if key == "si":
             return True, None
     # Absent, buit o irreconeixible: mana la fase (AD-6).
-    derived = phase in PHASE_ORDER and PHASE_ORDER.index(phase) >= PHASE_ORDER.index(Phase.ALERTA)
-    return derived, raw
+    derived = _severity(phase) >= _severity(Phase.ALERTA)
+    return derived, ACTIVAT_ABSENT if raw is None else raw
 ```
 
-Mateixa tolerància que `normalise_phase`, i pel mateix motiu. `binary_sensor.cecat_plan_activated`
+Mateixa tolerància que `normalise_phase`, i pel mateix motiu. `binary_sensor.proteccio_civil_catalunya_pla_activat`
 és un sensor `SAFETY`: que es quedi a `off` durant una emergència real és el pitjor error
 possible de la integració, i `plaactivat == "SI"` el fa possible perquè la descripció oficial
 escriu el domini com a "(Si/No)" mentre les dades donen `SI`/`NO`, i la fase `EMERGÈNCIA` **mai
@@ -210,12 +252,25 @@ Tres propietats que cal preservar:
 2. **El fallback és la fase, no un `True` incondicional.** És literalment el que diu AD-6:
    `plafase` mana, `plaactivat` és derivat. Una prealerta amb un `plaactivat` corrupte segueix
    donant `off`, que és correcte.
-3. **`Phase.UNKNOWN` queda fora de `PHASE_ORDER`** (AD-8), per tant `phase in PHASE_ORDER` és
-   fals i el derivat és `False`. Fase desconeguda **i** `plaactivat` desconegut és l'únic cas
-   sense cap senyal utilitzable; els dos literals van als diagnostics.
+3. **`Phase.UNKNOWN` queda fora de `PHASE_ORDER`** (AD-8), per tant `_severity` hi dona `-1` i el
+   derivat és `False`. Fase desconeguda **i** `plaactivat` desconegut és l'únic cas sense cap
+   senyal utilitzable; els dos literals van als diagnostics.
 
-El literal irreconeixible torna al coordinator, que emet un `warning` **una sola vegada** per
-literal, igual que amb `plafase`.
+**El camp absent no pot ser silenciós.** Que `plaactivat` desaparegui de la resposta és un canvi
+d'esquema sobre el camp que governa un sensor `SAFETY`: la integració passaria a derivar
+l'activació de la fase sense que ningú se n'assabentés. Per això l'absència no retorna `None`
+sinó el sentinel `ACTIVAT_ABSENT`, que viatja pel mateix camí que qualsevol altre literal
+irreconeixible: entra a `_unknown_activated`, emet el `warning` **una sola vegada** i surt als
+diagnostics.
+
+Resum del contracte del segon element, que és el que el coordinator mira:
+
+| `plaactivat` a la fila | `activated` | Segon element |
+| --- | --- | --- |
+| `SI`, `si`, ` SI `, `Si` | `True` | `None`, cap `warning` |
+| `NO`, `no`, ` No ` | `False` | `None`, cap `warning` |
+| Qualsevol altre literal (`true`, `Activat`, `""`) | Derivat de la fase | El literal cru, `warning` una vegada |
+| **Camp absent** | Derivat de la fase | `"<absent>"`, `warning` una vegada |
 
 ### Inici de fase
 
@@ -310,9 +365,35 @@ mai el seu event, i com que la font **no garanteix cap ordre de files** (§6), q
 sobreviu podria alternar entre cicles i emetre un canvi de fase espuri a cada sondeig. Indexar
 per `(acronym, phase)` fa desaparèixer les tres coses alhora i és el que AD-5 ja deia.
 
-Queda una col·lisió residual acceptada: dues files amb el **mateix acrònim i la mateixa fase**
-segueixen col·lapsant en una entrada. Sota la identitat declarada són indistingibles i no hi ha
-res a la font que permeti separar-les, per tant no s'intenta.
+Queden **dues limitacions acceptades**, totes dues inherents a la identitat declarada i no
+resolubles amb el que la font publica:
+
+1. **Dues files amb el mateix acrònim i la mateixa fase col·lapsen en una entrada.** Sota la
+   identitat declarada són indistingibles i no hi ha res a la font que permeti separar-les.
+2. **L'aparellament 1-a-1 no sap si les dues claus són el mateix pla.** Sota la premissa de
+   [`01`](01-data-sources.md) §3.2 nota 2, on cada pla d'actuació del PROCICAT reporta
+   `PROCICAT` pelat a `plaacronim`, un cicle en què el pla d'actuació d'onada de calor deixa de
+   seguir-se mentre el pla d'actuació de ferrocarril apareix en `ALERTA` produeix exactament una
+   alta i una baixa per a `PROCICAT`, i per tant la regla d'aparellament emet un sol
+   `cecat_plan_phase_changed` amb `escalation: true`, afirmant que un pla ha escalat quan de fet
+   un s'ha acabat i n'ha començat un altre de diferent. El blueprint escolta precisament
+   `escalation: true` ([`03`](03-feature-spec.md) §5), de manera que l'usuari rep una
+   notificació d'escalada per un episodi que no ha escalat.
+
+La segona **no** està coberta pel paràgraf d'ambigüitat de més avall, que només parla del cas de
+més d'una alta o més d'una baixa: aquest és estrictament 1-a-1 i entra a la branca
+d'aparellament.
+
+Dues sortides considerades i rebutjades, perquè ningú les reobri:
+
+| Alternativa | Per què no |
+| --- | --- |
+| Corroborar la identitat amb `plaicona` o `descripcio` | Recolzaria una porta de correcció sobre dos camps que aquesta mateixa recerca ha trobat poc fiables: `plaicona` dona 404 per a VENTCAT i PLASEQTA ([`01`](01-data-sources.md) §6.3) i `descripcio` és text lliure sense validar (§9). Pitjor que una limitació honesta |
+| Suprimir `phase_changed` per als acrònims que poden tenir més d'un pla | Descarta senyal real precisament a l'únic acrònim que en pot tenir diversos alhora |
+
+Es tanca sola el dia que s'observi la grafia real de `plaacronim` per als PA del PROCICAT, que
+és l'obert 1 del veredicte ([`01`](01-data-sources.md) §14): si resulta que porten acrònims
+distints, la confusió desapareix sense tocar res.
 
 ### Cicle
 
@@ -335,7 +416,7 @@ l'emergència s'ha acabat. Només un `[]` **vàlid** és una desactivació
 Si l'últim cicle amb èxit té més de `max(6 × interval, 1 h)`, les entitats passen a
 `available = False`. Amb `[]` com a estat normal, una font congelada és indistingible d'una font
 sana: sense aquest guard, l'usuari veuria `max_phase = none` per sempre i creuria que no hi ha
-cap emergència. `sensor.cecat_last_updated` és el senyal complementari
+cap emergència. `sensor.proteccio_civil_catalunya_darrera_actualitzacio` és el senyal complementari
 ([`03`](03-feature-spec.md) §3.4).
 
 ### Detecció d'events (`_emit_events`)
@@ -355,8 +436,9 @@ for acronym in {a for a, _ in added | removed}:
         # Exactament una alta i una baixa del mateix acrònim: és un canvi de fase.
         # S'emet un sol event i el parell started/ended queda suprimit.
         new, old = current[adds[0]], previous[removes[0]]
-        fire(EVENT_PLAN_PHASE_CHANGED, new, previous_phase=old.phase,
-             escalation=_severity(new.phase) > _severity(old.phase))
+        fire(EVENT_PLAN_PHASE_CHANGED, new,
+             previous_phase=old.phase, previous_phase_raw=old.phase_raw,
+             escalation=_is_escalation(new.phase, old.phase))
         continue
 
     # Qualsevol altra combinació: no s'endevina res.
@@ -389,6 +471,10 @@ Quatre propietats que es deriven directament de les traps:
    que `ha-incendiscat` va necessitar per a la vista ArcGIS.
 4. **Dues files simultànies del mateix acrònim en fases diferents generen dos `phase_started`,
    un per cadascuna**, i cap no es perd. És el cas que la clau composta existeix per cobrir.
+5. **La branca d'aparellament no pot llançar.** Compara amb `_is_escalation`, que dona `false`
+   quan qualsevol dels dos costats no és a `PHASE_ORDER` (§4). Una fila que passa a un `plafase`
+   irreconeixible emet el seu `phase_changed` amb `escalation: false` i el literal cru viatja al
+   payload a `phase_raw`; no hi ha cap `ValueError` que avorti el cicle.
 
 ### Literals desconeguts
 
@@ -407,8 +493,12 @@ if plan.activated_raw is not None and plan.activated_raw not in self._unknown_ac
 
 Un `warning` per literal i prou, per als tres conjunts (`plafase`, `plaacronim`, `plaactivat`).
 Un `warning` per cicle amb un sondeig de 5 min ompliria el log amb 288 línies al dia.
-`activated_raw` només és no-`None` quan el literal no s'ha reconegut, que és exactament quan
-`activated` s'ha derivat de la fase (§4).
+
+`activated_raw` és no-`None` exactament quan `activated` **s'ha hagut de derivar de la fase**, i
+això inclou tres casos: un literal irreconeixible (hi arriba tal qual), la cadena buida (hi
+arriba com a `""`) i **el camp absent** (hi arriba com a `"<absent>"`). Quan el literal és `SI` o
+`NO` en qualsevol grafia tolerada, `activated_raw` és `None` i no hi ha `warning`, perquè no s'ha
+derivat res: és el cas normal (§4).
 
 ---
 
@@ -487,9 +577,10 @@ fallaria la majoria dels dies i semblaria un error de connexió.
 | JSON no vàlid o no-llista | Igual, amb `LOGGER.error` una vegada per canvi de forma |
 | Element no-`dict` dins la llista | Es descarta amb `debug`; la resta es processa |
 | Camp que falta o és `null` | `.get()` amb valor per defecte. Mai excepció |
-| `plafase` desconeguda | `Phase.UNKNOWN` + `warning` una vegada per literal |
+| `plafase` desconeguda | `Phase.UNKNOWN` + `warning` una vegada per literal. **Cap excepció**: `_severity` hi dona `-1` en lloc de llançar, i un `phase_changed` cap a `UNKNOWN` o des d'`UNKNOWN` surt amb `escalation: false` (§4) |
 | `plaacronim` desconegut | Fila ingerida, `name` = acrònim, `warning` una vegada |
-| `plaactivat` absent, buit o amb un literal inesperat (`Si`, ` SI `, `true`…) | **`activated` es deriva de `plafase`**: cert si la fase és `ALERTA` o superior. Mai es llegeix com a "no activat". `warning` una vegada per literal (§4) |
+| `plaactivat` amb una grafia tolerada (`SI`, `si`, ` SI `, `Si`, `NO`, `no`) | Es normalitza i es fa servir **tal qual**. Cap derivació i **cap `warning`**: és el cas normal, i tolerar la grafia és justament el punt (§4) |
+| `plaactivat` absent, buit o amb un literal irreconeixible (`true`, `Activat`…) | **`activated` es deriva de `plafase`**: cert si la fase és `ALERTA` o superior. Mai es llegeix com a "no activat". `warning` una vegada per literal; l'absència s'hi registra com a `"<absent>"` (§4) |
 | Dues files amb el **mateix `plaacronim`** en fases diferents | Dues entrades a l'estat, dos `phase_started`, recompte 2. La clau és `(acronym, phase)` (§5) |
 | 3 cicles fallits consecutius | `cecat_service_degraded`; un altre amb `recovered: true` al recuperar-se |
 | Dades més velles que `max(6 × interval, 1 h)` | `available = False` a totes les entitats |
@@ -524,7 +615,7 @@ capturades**, no inventades (regla d'`AGENTS.md` heretada d'`ha-incendiscat`):
 | `dos_plans_2026_01_19.json` | 🗄️ Wayback (**reconstrucció**) | Múltiples files amb acrònims diferents |
 | `pdf_url_accents_2026_07_03.json` | 🗄️ Wayback | URL amb `ó`, `à`, `'` |
 | `emergencia_SYNTHETIC.json` | **sintètic** | `EMERGÈNCIA`, mai observada |
-| `emergencia_plaactivat_rar_SYNTHETIC.json` | **sintètic** | `EMERGÈNCIA` amb `plaactivat` = `Si`, ` SI ` i absent: els tres han de donar `activated = True` (§4) |
+| `emergencia_plaactivat_rar_SYNTHETIC.json` | **sintètic** | Tres files d'`EMERGÈNCIA` amb `plaactivat` = `Si`, ` SI ` i **el camp absent**: els tres han de donar `activated = True` (§4). Cada fila porta un `plaacronim` **distint** (`INUNCAT`, `INFOCAT`, `NEUCAT`) perquè les tres claus `(acronym, phase)` siguin distintes; amb l'acrònim repetit col·lapsarien en una entrada (§5) i dues de les tres variants no s'avaluarien mai |
 | `fase_desconeguda_SYNTHETIC.json` | **sintètic** | Vàlvula `unknown` |
 | `camps_absents_SYNTHETIC.json` | **sintètic** | `comunicatpdf`/`plaicona`/`descripcio` absents |
 | `dos_procicat_SYNTHETIC.json` | **sintètic** | Dues files del **mateix acrònim** en fases diferents. Sintètic perquè la forma és una inferència de [`01`](01-data-sources.md) §3.2 nota 2, mai observada |
@@ -537,7 +628,15 @@ Tenir-les totes dues és el que fa comprovables els dos camins de `resolve_start
 reals en lloc d'un fixture retocat a mà.
 
 Els sintètics porten `_SYNTHETIC` al nom i una capçalera `_comment` que ho diu, perquè ningú els
-confongui amb evidència. És la distinció que fa creïbles els documents dels germans.
+confongui amb evidència. És la distinció que fa creïbles els documents dels germans. Els dos que
+porten `EMERGÈNCIA` són sintètics precisament perquè **aquesta fase no s'ha observat mai en un
+payload real** ([`01`](01-data-sources.md) §3.1, trap 14): el fixture prova el camí de codi, no
+documenta cap observació.
+
+Un avís sobre el fixture de les variants de `plaactivat`: la cobertura per variant viu als
+criteris de `resolve_activated` de T3 ([`05`](05-implementation-plan.md)), que asserten fila a
+fila. El criteri agregat de T7 (`plan_activated = on`) el satisfaria **qualsevol** de les tres
+files essent certa, per tant no és cobertura de les tres i no s'hi ha de confiar com si ho fos.
 
 ### Fitxers de test
 
@@ -592,7 +691,7 @@ per mantenir-les. `pyproject.toml` amb el mateix conjunt de regles de `ruff` que
 | AD-5 | Identitat de l'episodi = `(acronym, phase)`, **i és també la clau del `dict` d'estat** | `:id` de Socrata, hash de la fila, o indexar per `plaacronim` sol | `comunicatpdf` canvia dins de la mateixa fase i `:id` canvia en un canvi de fase ([`01`](01-data-sources.md) trap 11). Indexar per l'acrònim sol perdria una de dues files simultànies de PROCICAT, que §3.2 nota 2 fa plausible (§5) |
 | AD-6 | `plafase` mana, `plaactivat` és derivat: normalitzat com `plafase`, `False` només amb `no`, i derivat de la fase si no es reconeix | Filtrar o comparar per `plaactivat == 'SI'` | `plaactivat: "NO"` és la prealerta, el 51,4% dels comunicats: filtrar amaga mitja font. I la descripció oficial escriu "(Si/No)" mentre les dades donen `SI`/`NO`, per tant una comparació estricta pot deixar un sensor `SAFETY` a `off` durant una emergència ([`01`](01-data-sources.md) traps 1 i 14, §3.3) |
 | AD-7 | Un atribut `plans` en lloc de N entitats per pla | 13-18 binary sensors | `plaacronim` no és un conjunt tancat (`PENTA`, `NOPLA`). Una llista blanca quedaria obsoleta sense avís ([`03`](03-feature-spec.md) §7) |
-| AD-8 | `Phase.UNKNOWN` fora de `PHASE_ORDER` | Col·locar-la a dalt o a baix de l'escala | No se sap on va un literal desconegut. Inventar-ho és pitjor que no ordenar-lo |
+| AD-8 | `Phase.UNKNOWN` fora de `PHASE_ORDER`, amb `_severity` que hi dona `-1` en lloc de llançar i `escalation: false` sempre que un costat no sigui comparable | Col·locar-la a dalt o a baix de l'escala, o cridar `PHASE_ORDER.index()` pelat | No se sap on va un literal desconegut i inventar-ho és pitjor que no ordenar-lo. Però `index()` pelat llançaria `ValueError` a la branca d'aparellament i avortaria el cicle sencer, contra el criteri 6 de [`03`](03-feature-spec.md): un literal desconegut és esperable, no excepcional (§4) |
 | AD-9 | Normalització de fase sense diacrítics | Comparació exacta amb `"EMERGÈNCIA"` | La fase més greu mai s'ha observat en viu; un accent no pot fer-la perdre ([`01`](01-data-sources.md) trap 14) |
 | AD-10 | Mapatge propi acrònim → nom, amb fallback a l'acrònim | `planom` | `planom` és igual a `plaacronim` a 5/5 files observades ([`01`](01-data-sources.md) trap 4) |
 | AD-11 | Icones `mdi:` fixes, `plaicona` només com a atribut | `plaicona` com a `entity_picture` | La llicència restringeix l'ús dels símbols oficials i `ico_VENTCAT.png` dona 404 ([`01`](01-data-sources.md) §11.3, §6.3) |

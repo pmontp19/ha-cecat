@@ -241,7 +241,7 @@ Regla, la mateixa tolerància que `plafase` (trap 14) i coherent amb AD-6 "`plaf
 | --- | --- |
 | `no` | **`False`** |
 | `si` | `True` |
-| Absent, buit, o qualsevol altre literal | **Es deriva de la fase**: `True` si la fase és `ALERTA` o superior a `PHASE_ORDER`, `False` altrament. `warning` una sola vegada per literal |
+| Absent, buit, o qualsevol altre literal | **Es deriva de la fase**: `True` si la fase és `ALERTA` o superior a `PHASE_ORDER`, `False` altrament. `warning` una sola vegada per literal, i **el camp absent també avisa**: hi entra amb un sentinel explícit perquè un canvi d'esquema sobre el camp que governa el sensor `SAFETY` no pugui passar en silenci ([`04`](04-architecture.md) §4) |
 
 `activated = False` **només** quan el valor normalitzat és exactament `no`. Un literal que no
 reconeixem no pot llegir-se mai com a "no passa res": el que fa és cedir la decisió a `plafase`,
@@ -500,10 +500,13 @@ actualitzacions al 5% dels casos, que és precisament durant els episodis greus.
 de tancament: **1 sol `DESACTIVACIO` en 623 dies**, i el comunicat de prealerta ho diu per
 escrit 📄 ("es donarà per finalitzada, sense necessitat d'una comunicació de tancament").
 
-Per tant l'única manera de detectar una desactivació és **reconciliar**: recordar els
-`plaacronim` del cicle anterior i, si un desapareix, emetre l'event. És exactament el patró
-`_prune_vanished` que `ha-incendiscat` ja fa servir per als incendis que s'esvaeixen de la
-vista ArcGIS
+Per tant l'única manera de detectar una desactivació és **reconciliar**: recordar les parelles
+**`(plaacronim, plafase)`** del cicle anterior i, si una desapareix, emetre l'event. La clau ha
+de ser la parella sencera i no `plaacronim` sol, perquè dues files simultànies del mateix pla en
+fases diferents col·lapsarien i la que es perdés no emetria mai el seu event: és el trap 3, i és
+la mateixa clau que fa servir l'estat del coordinator
+([`04`](04-architecture.md) §5, AD-5). El patró és el `_prune_vanished` que `ha-incendiscat` ja
+fa servir per als incendis que s'esvaeixen de la vista ArcGIS
 ([`ha-incendiscat/docs/01`](https://github.com/pmontp19/ha-incendiscat/blob/main/docs/01-data-sources.md)
 §2).
 
@@ -728,7 +731,9 @@ natura (§3.2), i el seu filtre `plaactivat='SI'` és el trap núm. 1 d'aquest d
 > | 3 | **Si un canvi de fase substitueix la fila o l'edita.** Una sola transició observada | Mitjà. Decideix si `:created_at` és fiable com a inici de fase | Fer servir `:created_at` amb `fasedatahora` de reserva, i disparar events per `(plaacronim, plafase)` mai per `:id` (trap 11) |
 > | 4 | **`plaicona` de VENTCAT i PLASEQTA** (les seves icones donen 404) | Nul. Ja hem decidit no fer servir `plaicona` (§11.3) | Cap |
 > | 5 | **El contenidor Azure de comunicats no és una API documentada.** L'he fet servir per fer arqueologia, no en runtime | Nul mentre no en depenguem | **No consumir-lo des de la integració.** Si algun dia es vol històric, cal negociar-ho amb la font |
+> | 6 | **Dos plans d'actuació distints sota el mateix `plaacronim` es poden confondre en un sol canvi de fase.** Si el PROCICAT reporta l'acrònim pelat (obert 1), un cicle on un PA s'acaba i un altre comença dona una alta i una baixa i s'emet un `cecat_plan_phase_changed` amb `escalation: true` que afirma una escalada que no ha passat | Baix, però visible: el blueprint notifica per `escalation: true` | **Limitació acceptada i documentada**, no mitigada: corroborar amb `plaicona` o `descripcio` seria construir una porta de correcció sobre dos camps poc fiables (§6.3, §9). Detall i alternatives rebutjades a [`04`](04-architecture.md) §5. Es tanca sola si l'obert 1 resol que els PA porten acrònims distints |
 >
-> Cap dels cinc bloqueja començar. Els dos que importen (2 i 3) es tanquen sols la primera
-> vegada que hi hagi una emergència o una transició de fase reals, i el disseny de
-> [`03-feature-spec.md`](03-feature-spec.md) està construït per no petar mentrestant.
+> Cap dels sis bloqueja començar. Els dos que importen (2 i 3) es tanquen sols la primera
+> vegada que hi hagi una emergència o una transició de fase reals, el 6 depèn del mateix que
+> l'1, i el disseny de [`03-feature-spec.md`](03-feature-spec.md) està construït per no petar
+> mentrestant.
