@@ -1,0 +1,172 @@
+[
+  {
+    "tipus_pla": "E",
+    "nom_del_pla": "AEROCAT",
+    "risc": "Aeronàutic",
+    "estat": "Aprovat pendent revisió",
+    "_ltim_esdeveniment": "Actualització",
+    "enllac": {
+      "url": "https://interior.gencat.cat/ca/arees_dactuacio/proteccio_civil/plans-proteccio-civil/plans-especials/aerocat/"
+    }
+  },
+  {
+    "tipus_pla": "E",
+    "nom_del_pla": "ALLAUCAT",
+    "risc": "Allaus",
+    "estat": "Aprovat pendent revisió",
+    "_ltim_esdeveniment": "Aprovació",
+    "enllac": {
+      "url": "https://interior.gencat.cat/ca/arees_dactuacio/proteccio_civil/plans-proteccio-civil/plans-especials/allaucat/"
+    }
+  },
+  {
+    "tipus_pla": "E",
+    "nom_del_pla": "CAMCAT",
+    "risc": "Contaminació marina",
+    "estat": "Aprovat pendent revisió",
+    "_ltim_esdeveniment": "Aprovació",
+    "enllac": {
+      "url": "https://interior.gencat.cat/ca/arees_dactuacio/proteccio_civil/plans-proteccio-civil/plans-especials/camcat/"
+    }
+  },
+  {
+    "tipus_pla": "E",
+    "nom_del_pla": "INFOCAT",
+    "risc": "Incendis Forestals",
+    "estat": "Aprovat pendent revisió",
+    "_ltim_esdeveniment": "Actualització",
+    "enllac": {
+      "url": "https://interior.gencat.cat/ca/arees_dactuacio/proteccio_civil/plans-proteccio-civil/plans-especials/infocat/"
+    }
+  },
+  {
+    "tipus_pla": "E",
+    "nom_del_pla": "INUNCAT",
+    "risc": "Inundacions",
+    "estat": "Aprovat pendent revisió",
+    "_ltim_esdeveniment": "Actualització",
+    "enllac": {
+      "url": "https://interior.gencat.cat/ca/arees_dactuacio/proteccio_civil/plans-proteccio-civil/plans-especials/inuncat/"
+    }
+  },
+  {
+    "tipus_pla": "E",
+    "nom_del_pla": "NEUCAT",
+    "risc": "Nevades",
+    "estat": "Aprovat",
+    "_ltim_esdeveniment": "Actualització",
+    "enllac": {
+      "url": "https://interior.gencat.cat/ca/arees_dactuacio/proteccio_civil/plans-proteccio-civil/plans-especials/neucat/"
+    }
+  },
+  {
+    "tipus_pla": "-",
+    "nom_del_pla": "PA del PROCICAT per Subsidència al barri de l'Estació de Sallent",
+    "risc": "Territorial - Multirisc",
+    "estat": "Revisió",
+    "_ltim_esdeveniment": "Actualització",
+    "enllac": {
+      "url": "https://interior.gencat.cat/ca/arees_dactuacio/proteccio_civil/plans-proteccio-civil/plans-territorials/procicat/#pla-d%E2%80%99actuacio-del-pla-procicat-per-emergencies-per-risc-de-subsidencies-en-el-barri-de-l%E2%80%99estacio-de-sallent"
+    }
+  },
+  {
+    "tipus_pla": "-",
+    "nom_del_pla": "PA PROCICAT - Emergències Episodis Contaminació a l'Ebre (Flix)",
+    "risc": "Contaminació Ebre aigües avall de Flix",
+    "estat": "Aprovat pendent revisió",
+    "_ltim_esdeveniment": "Actualització",
+    "enllac": {
+      "url": "https://interior.gencat.cat/ca/arees_dactuacio/proteccio_civil/plans-proteccio-civil/plans-territorials/procicat/#pla-d%E2%80%99actuacio-del-procicat-per-emergencies-per-episodis-de-contaminacio-a-l%E2%80%99ebre-aigues-avall-de-l%E2%80%99embassament-de-flix"
+    }
+  },
+  {
+    "tipus_pla": "-",
+    "nom_del_pla": "PA PROCICAT - Transport de viatgers per Ferrocarril",
+    "risc": "Transport de Viatgers per Ferrocarril",
+    "estat": "Aprovat pendent revisió",
+    "_ltim_esdeveniment": "Actualització",
+    "enllac": {
+      "url": "https://interior.gencat.cat/ca/arees_dactuacio/proteccio_civil/plans-proteccio-civil/plans-territorials/procicat/#pla-d%E2%80%99actuacio-del-procicat-per-emergencies-en-el-transport-de-viatgers-per-ferrocarril"
+    }
+  },
+  {
+    "tipus_pla": "E",
+    "nom_del_pla": "Pla Especial d’emergències per Pandèmies",
+    "risc": "Pandèmies",
+    "estat": "Aprovat",
+    "_ltim_esdeveniment": "Aprovació",
+    "enllac": {
+      "url": "https://interior.gencat.cat/ca/arees_dactuacio/proteccio_civil/plans-proteccio-civil/plans-especials/pandemies/"
+    }
+  },
+  {
+    "tipus_pla": "E",
+    "nom_del_pla": "PLASEQCAT",
+    "risc": "Químic",
+    "estat": "Aprovat pendent revisió",
+    "_ltim_esdeveniment": "Actualització",
+    "enllac": {
+      "url": "https://interior.gencat.cat/ca/arees_dactuacio/proteccio_civil/plans-proteccio-civil/plans-especials/plaseqcat/"
+    }
+  },
+  {
+    "tipus_pla": "E",
+    "nom_del_pla": "PLASEQTA",
+    "risc": "Químic",
+    "estat": "Aprovat",
+    "_ltim_esdeveniment": "Actualització",
+    "enllac": {
+      "url": "https://interior.gencat.cat/ca/arees_dactuacio/proteccio_civil/plans-proteccio-civil/plans-especials/plaseqcat/"
+    }
+  },
+  {
+    "tipus_pla": "T",
+    "nom_del_pla": "PROCICAT",
+    "risc": "Territorial - Multirisc",
+    "estat": "Aprovat",
+    "_ltim_esdeveniment": "Aprovació",
+    "enllac": {
+      "url": "https://interior.gencat.cat/ca/arees_dactuacio/proteccio_civil/plans-proteccio-civil/plans-territorials/procicat/index.html"
+    }
+  },
+  {
+    "tipus_pla": "E",
+    "nom_del_pla": "RADCAT",
+    "risc": "Radiològic",
+    "estat": "Aprovat pendent revisió",
+    "_ltim_esdeveniment": "Actualització",
+    "enllac": {
+      "url": "https://interior.gencat.cat/ca/arees_dactuacio/proteccio_civil/plans-proteccio-civil/plans-especials/radcat/"
+    }
+  },
+  {
+    "tipus_pla": "E",
+    "nom_del_pla": "SISMICAT",
+    "risc": "Sísmic",
+    "estat": "Aprovat",
+    "_ltim_esdeveniment": "Actualització",
+    "enllac": {
+      "url": "https://interior.gencat.cat/ca/arees_dactuacio/proteccio_civil/plans-proteccio-civil/plans-especials/sismicat/"
+    }
+  },
+  {
+    "tipus_pla": "E",
+    "nom_del_pla": "TRANSCAT",
+    "risc": "Transport de mercaderies perilloses",
+    "estat": "Aprovat",
+    "_ltim_esdeveniment": "Actualització",
+    "enllac": {
+      "url": "https://interior.gencat.cat/ca/arees_dactuacio/proteccio_civil/plans-proteccio-civil/plans-especials/transcat/"
+    }
+  },
+  {
+    "tipus_pla": "E",
+    "nom_del_pla": "VENTCAT",
+    "risc": "Ventades",
+    "estat": "Aprovat pendent revisió",
+    "_ltim_esdeveniment": "Aprovació",
+    "enllac": {
+      "url": "https://interior.gencat.cat/ca/arees_dactuacio/proteccio_civil/plans-proteccio-civil/plans-especials/ventcat/"
+    }
+  }
+]

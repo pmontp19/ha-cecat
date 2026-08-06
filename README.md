@@ -3,10 +3,25 @@
 Integració de Home Assistant per a les **activacions dels plans de Protecció Civil de
 Catalunya** (CECAT): INUNCAT, VENTCAT, NEUCAT, PROCICAT, SISMICAT, TRANSCAT i la resta.
 
-> 🚧 **En recerca.** La font està verificada; el disseny encara s'està fent. El codi no hi és.
+> 🚧 **En recerca, amb el disseny tancat.** La font està verificada i **els cinc documents de
+> disseny estan escrits**. El codi encara no hi és. Recerca feta el 2026-08-06; el que queda
+> obert està llistat més avall, sense endolcir.
 
 Un avís del Meteocat diu què preveu el meteoròleg; això diu si Protecció Civil ha activat
 realment un pla, i en quina fase.
+
+## Veredicte de la recerca
+
+**Sí, hi ha prou font per construir una integració útil, i és petita.** Les quatre preguntes que
+bloquejaven el disseny estan respostes amb evidència, no amb conjectura. Detall complet i
+matisos a [`docs/01-data-sources.md` §14](docs/01-data-sources.md#14-veredicte).
+
+| Pregunta | Resposta |
+| --- | --- |
+| **Vocabulari** | Fases: exactament `PREALERTA` / `ALERTA` / `EMERGÈNCIA`, definides per la font oficial. Sense normalitat ni desactivació. Plans: 18 identitats conegudes, però **el conjunt no és tancat** |
+| **Estat buit** | `[]`, observat directament i documentat. **Amb una correcció crítica**: `plaactivat: "NO"` també existeix, és la prealerta, i filtrar per `'SI'` amaga el 51,4% del senyal |
+| **Territori** | **No existeix** cap font estructurada de territori per activació. Les comarques només són prosa dins del PDF del comunicat. Això confirma `single_config_entry: true` |
+| **Història i cadència** | Només estat actual, mutat al lloc. **1,84 comunicats/dia** mesurats sobre 623 dies, p05 de 14 min entre comunicats consecutius. Sondeig de 5 min amb `If-Modified-Since` (verificat: retorna 304). "Recentment desactivat" és possible, però només per reconciliació de l'absència |
 
 ## Estat
 
@@ -14,16 +29,61 @@ realment un pla, i en quina fase.
 | --- | --- |
 | Domini de Home Assistant | `cecat` |
 | Distribució | HACS (repositori personalitzat, de moment) |
-| Font | Dades obertes de la Generalitat, sense clau ni quota |
+| Font | [Dades obertes de la Generalitat](https://analisi.transparenciacatalunya.cat/d/wj9c-j6vf), sense clau ni quota |
+| Entitats previstes | 4 (3 + 1 de diagnòstic) |
+| Events previstos | 4 |
+| Dependències de PyPI | cap (`requirements: []`) |
+
+## Documentació de disseny
+
+| Document | Contingut |
+| --- | --- |
+| [`01-data-sources.md`](docs/01-data-sources.md) | Endpoint, esquema, vocabulari complet, estat buit, cadència, llicència, **15 traps de tolerància** i el **veredicte** |
+| [`02-existing-integrations.md`](docs/02-existing-integrations.md) | `nina`, `dpc`, els germans, i dos consumidors reals d'aquesta mateixa font amb els seus errors |
+| [`03-feature-spec.md`](docs/03-feature-spec.md) | Entitats, estats, atributs, events, config flow, criteris d'acceptació |
+| [`04-architecture.md`](docs/04-architecture.md) | Layout, models, coordinator, resiliència, tests, CI, 14 decisions arquitecturals |
+| [`05-implementation-plan.md`](docs/05-implementation-plan.md) | 13 tasques S/M amb criteris verificables i graf de dependències |
+| [`captures/`](docs/captures/) | Les captures reals que sostenen cada afirmació |
+
+## Què encara no se sap
+
+Cap d'aquestes coses bloqueja començar a construir, i el disseny està fet per no petar
+mentrestant. Detall a [`docs/01-data-sources.md` §14](docs/01-data-sources.md#14-veredicte).
+
+1. **La fase `EMERGÈNCIA` no s'ha observat mai** en un payload real (n'hi va haver 15 en 6 anys).
+   És la fase que més importa i està coberta només amb un fixture sintètic marcat com a tal.
+2. **La grafia de `plaacronim` per als plans d'actuació del PROCICAT** és desconeguda: quatre
+   fonts oficials en donen quatre grafies diferents (`PROCICAT`, `FERROCAT`,
+   `PROCICAT - Ferrocarril`, `PA PROCICAT - Transport Viatgers Ferrocarril`) i cap s'ha observat
+   al feed.
+3. **Si un canvi de fase substitueix la fila o l'edita.** Només s'ha observat una transició.
+   Decideix si `:created_at` és fiable com a inici de fase.
+
+I tres limitacions que **no** es resoldran perquè són de la font, no de la recerca:
+
+- **No hi ha territori afectat.** La integració no pot dir si el teu municipi està afectat, i
+  qualsevol cosa que ho pretengui estarà mentint.
+- **No hi ha històric.** Si Home Assistant està aturat quan un pla s'activa i es desactiva,
+  l'episodi no ha existit.
+- **La desactivació es detecta per absència**, amb la resolució de l'interval de sondeig. El
+  CECAT gairebé no publica comunicats de tancament: 1 en 623 dies.
 
 ## Integracions germanes
 
-- [`ha-avisoscat`](https://github.com/pmontp19/ha-avisoscat) — avisos de temps sever del Meteocat.
-- [`ha-incendiscat`](https://github.com/pmontp19/ha-incendiscat) — incendis forestals i Pla Alfa.
+- [`ha-avisoscat`](https://github.com/pmontp19/ha-avisoscat): avisos de temps sever del Meteocat.
+- [`ha-incendiscat`](https://github.com/pmontp19/ha-incendiscat): incendis forestals i Pla Alfa.
+
+Per què això va separat d'`ha-avisoscat`:
+[`docs/02-existing-integrations.md` §3](docs/02-existing-integrations.md#3-dwd_weather_warnings-vs-nina-el-precedent-de-la-separació).
 
 ## Avís legal
 
 Projecte no oficial, **no afiliat ni aprovat** pel CECAT ni per la Generalitat de
-Catalunya. Les dades provenen del portal de dades obertes de la Generalitat.
+Catalunya.
 
-Llicència [MIT](LICENSE).
+Dades: **Generalitat de Catalunya. Departament d'Interior i Seguretat Pública. Direcció General
+de Protecció Civil.** Publicades sota la
+[Llicència oberta d'ús d'informació de Catalunya](https://web.gencat.cat/ca/generalitat/dades-indicadors/dades-obertes/llicencies),
+que exigeix citar la font i la data d'actualització.
+
+Llicència del codi: [MIT](LICENSE).

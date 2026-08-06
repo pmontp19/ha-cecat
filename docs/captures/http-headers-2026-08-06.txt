@@ -1,0 +1,27 @@
+# Capçaleres HTTP i GET condicional — https://analisi.transparenciacatalunya.cat/resource/wj9c-j6vf.json
+# Capturat 2026-08-06 ~11:49 UTC
+
+## GET (Accept-Encoding: gzip)
+HTTP/1.1 200 OK
+Server: nginx
+Date: Thu, 06 Aug 2026 11:49:59 GMT
+Content-Type: application/json;charset=utf-8
+Transfer-Encoding: chunked
+Connection: keep-alive
+Access-Control-Allow-Origin: *
+ETag: "YnJhdm8uMjQzODdfMl8yMzc4S2Z0Mm03em15Q0xLaEFmbVU0TFdzQ3ZXSWlB---gzipFV3yYjLqxnXzyd1M5Hh_3x-37Eg--gzip--gzip"
+X-SODA2-Fields: ["plaicona","plaacronim","planom","plafase","plaactivat","fasedatahora","comunicatpdf","descripcio"]
+X-SODA2-Types: ["url","text","text","text","text","text","url","text"]
+X-SODA2-Data-Out-Of-Date: false
+X-SODA2-Truth-Last-Modified: Thu, 06 Aug 2026 09:20:17 GMT
+X-SODA2-Secondary-Last-Modified: Thu, 06 Aug 2026 09:20:17 GMT
+Last-Modified: Thu, 06 Aug 2026 09:20:17 GMT
+Vary: Accept-Encoding
+Content-Encoding: gzip
+X-Socrata-Region: aws-eu-west-1-prod
+X-Socrata-RequestId: 798a3c06d7a07a260c4576947a1e75f1
+Strict-Transport-Security: max-age=31536000; includeSubDomains
+
+## GET condicional
+If-None-Match: "…--gzip--gzip"     -> HTTP 200  (ETag NO honorat; sufix --gzip duplicat)
+If-Modified-Since: Thu, 06 Aug 2026 09:20:17 GMT -> HTTP 304, cos buit  (SÍ honorat)

@@ -1,0 +1,58 @@
+canonical events: 1146 from 2024-11-20 to 2026-08-06
+span days 623 -> 1.84 events/day
+
+--- events per month (UTC) ---
+  2024-11 12
+  2024-12 56
+  2025-01 43
+  2025-02 16
+  2025-03 68
+  2025-04 55
+  2025-05 50
+  2025-06 39
+  2025-07 86
+  2025-08 67
+  2025-09 55
+  2025-10 47
+  2025-11 37
+  2025-12 54
+  2026-01 106
+  2026-02 56
+  2026-03 62
+  2026-04 35
+  2026-05 42
+  2026-06 45
+  2026-07 99
+  2026-08 16
+
+--- inter-arrival gaps between consecutive events (minutes) ---
+ min 0.08  p05 14.0  p25 105.2  median 357.6  p75 960.0  p95 3055.3  max 11214 (=7.8 d)
+ gaps < 5 min: 12 (1.0%)  < 15 min: 62 (5.4%)
+
+--- episodes (distinct incident numbers) ---
+ distinct incidents: 537 -> 0.86 per day
+ comms per incident: median 1 max 34
+ incident published-span hours: median 0.0  p90 50.5  max 1866.1
+ incidents with a single comm: 335 (62%)
+
+--- ACCIO x PLA (top) ---
+  PLA           ACTIVAT  NOACTIVAT
+  INUNCAT           197        117
+  PROCICAT          113        154
+  VENTCAT            88         47
+  INFOCAT            84         20
+  AEROCAT            11         89
+  TRANSCAT           12         45
+  NEUCAT             19         36
+  PLASEQTA            4         28
+  PLASEQCAT          26          4
+  ALLAUCAT            0         29
+  CAMCAT              0         12
+  RADCAT              0          6
+  PENTA               3          0
+  NOPLA               0          2
+
+--- filename ts vs blob Last-Modified lag (minutes, filename read as Europe/Madrid) ---
+ n=1146  min 0  p05 1  median 2.4  p95 8  max 993
+ within 0..30 min: 99.5%
+ negative lags (filename after upload): 0

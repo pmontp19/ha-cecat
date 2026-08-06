@@ -1,0 +1,920 @@
+[
+  {
+    "any": "2017",
+    "pla": "AEROCAT",
+    "tipus_d_emerg_ncia": "Aeronàutica",
+    "incident": "0",
+    "prealerta": "43",
+    "alerta": "2",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2017",
+    "pla": "ALLAUCAT",
+    "tipus_d_emerg_ncia": "Allaus",
+    "incident": "0",
+    "prealerta": "4",
+    "alerta": "0",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2017",
+    "pla": "CAMCAT",
+    "tipus_d_emerg_ncia": "Contaminació marina",
+    "incident": "0",
+    "prealerta": "6",
+    "alerta": "2",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2017",
+    "pla": "INFOCAT",
+    "tipus_d_emerg_ncia": "Incendis forestals",
+    "incident": "0",
+    "prealerta": "12",
+    "alerta": "2",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2017",
+    "pla": "INUNCAT",
+    "tipus_d_emerg_ncia": "Inundacions",
+    "incident": "0",
+    "prealerta": "31",
+    "alerta": "8",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2017",
+    "pla": "NEUCAT",
+    "tipus_d_emerg_ncia": "Nevades",
+    "incident": "0",
+    "prealerta": "8",
+    "alerta": "3",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2017",
+    "pla": "PENTA",
+    "tipus_d_emerg_ncia": "Nuclear",
+    "incident": "14",
+    "prealerta": "1",
+    "alerta": "0",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2017",
+    "pla": "PLASEQCAT",
+    "tipus_d_emerg_ncia": "Químic en instal·lacions",
+    "incident": "232",
+    "prealerta": "0",
+    "alerta": "6",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2017",
+    "pla": "PROCICAT",
+    "tipus_d_emerg_ncia": "Ferrocarril",
+    "incident": "0",
+    "prealerta": "157",
+    "alerta": "1",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2017",
+    "pla": "PROCICAT",
+    "tipus_d_emerg_ncia": "Fred",
+    "incident": "0",
+    "prealerta": "0",
+    "alerta": "2",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2017",
+    "pla": "PROCICAT",
+    "tipus_d_emerg_ncia": "Onada de calor",
+    "incident": "0",
+    "prealerta": "9",
+    "alerta": "2",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2017",
+    "pla": "PROCICAT",
+    "tipus_d_emerg_ncia": "Onatge",
+    "incident": "0",
+    "prealerta": "5",
+    "alerta": "1",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2017",
+    "pla": "PROCICAT",
+    "tipus_d_emerg_ncia": "Altres (fuita gas i contaminació)",
+    "incident": "50",
+    "prealerta": "15",
+    "alerta": "0",
+    "emerg_ncia": "1"
+  },
+  {
+    "any": "2017",
+    "pla": "RADCAT",
+    "tipus_d_emerg_ncia": "Risc radiològic",
+    "incident": "0",
+    "prealerta": "1",
+    "alerta": "0",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2017",
+    "pla": "SISMICAT",
+    "tipus_d_emerg_ncia": "Sismes",
+    "incident": "5",
+    "prealerta": "3",
+    "alerta": "0",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2017",
+    "pla": "TRANSCAT",
+    "tipus_d_emerg_ncia": "Mercaderies perilloses",
+    "incident": "503",
+    "prealerta": "2",
+    "alerta": "7",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2017",
+    "pla": "VENTCAT",
+    "tipus_d_emerg_ncia": "Vent",
+    "incident": "0",
+    "prealerta": "16",
+    "alerta": "8",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2018",
+    "pla": "AEROCAT",
+    "tipus_d_emerg_ncia": "Aeronàutica",
+    "incident": "0",
+    "prealerta": "52",
+    "alerta": "4",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2018",
+    "pla": "ALLAUCAT",
+    "tipus_d_emerg_ncia": "Allaus",
+    "incident": "0",
+    "prealerta": "9",
+    "alerta": "0",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2018",
+    "pla": "CAMCAT",
+    "tipus_d_emerg_ncia": "Contaminació marina",
+    "incident": "0",
+    "prealerta": "11",
+    "alerta": "0",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2018",
+    "pla": "INFOCAT",
+    "tipus_d_emerg_ncia": "Incendis forestals",
+    "incident": "0",
+    "prealerta": "2",
+    "alerta": "0",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2018",
+    "pla": "INUNCAT",
+    "tipus_d_emerg_ncia": "Inundacions",
+    "incident": "0",
+    "prealerta": "45",
+    "alerta": "16",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2018",
+    "pla": "NEUCAT",
+    "tipus_d_emerg_ncia": "Nevades",
+    "incident": "0",
+    "prealerta": "4",
+    "alerta": "2",
+    "emerg_ncia": "1"
+  },
+  {
+    "any": "2018",
+    "pla": "PENTA",
+    "tipus_d_emerg_ncia": "Nuclear",
+    "incident": "18",
+    "prealerta": "0",
+    "alerta": "0",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2018",
+    "pla": "PLASEQCAT",
+    "tipus_d_emerg_ncia": "Químic en instal·lacions",
+    "incident": "223",
+    "prealerta": "0",
+    "alerta": "8",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2018",
+    "pla": "PROCICAT",
+    "tipus_d_emerg_ncia": "Ferrocarril",
+    "incident": "0",
+    "prealerta": "108",
+    "alerta": "1",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2018",
+    "pla": "PROCICAT",
+    "tipus_d_emerg_ncia": "Fred",
+    "incident": "0",
+    "prealerta": "3",
+    "alerta": "1",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2018",
+    "pla": "PROCICAT",
+    "tipus_d_emerg_ncia": "Onada de calor",
+    "incident": "7",
+    "prealerta": "0",
+    "alerta": "2",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2018",
+    "pla": "PROCICAT",
+    "tipus_d_emerg_ncia": "Onatge",
+    "incident": "0",
+    "prealerta": "8",
+    "alerta": "3",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2018",
+    "pla": "PROCICAT",
+    "tipus_d_emerg_ncia": "Altres (fuita gas i contaminació)",
+    "incident": "63",
+    "prealerta": "17",
+    "alerta": "0",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2018",
+    "pla": "RADCAT",
+    "tipus_d_emerg_ncia": "Risc radiològic",
+    "incident": "1",
+    "prealerta": "0",
+    "alerta": "0",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2018",
+    "pla": "SISMICAT",
+    "tipus_d_emerg_ncia": "Sismes",
+    "incident": "9",
+    "prealerta": "0",
+    "alerta": "0",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2018",
+    "pla": "TRANSCAT",
+    "tipus_d_emerg_ncia": "Mercaderies perilloses",
+    "incident": "494",
+    "prealerta": "9",
+    "alerta": "2",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2018",
+    "pla": "VENTCAT",
+    "tipus_d_emerg_ncia": "Vent",
+    "incident": "0",
+    "prealerta": "21",
+    "alerta": "7",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2019",
+    "pla": "AEROCAT",
+    "tipus_d_emerg_ncia": "Aeronàutica",
+    "incident": "0",
+    "prealerta": "40",
+    "alerta": "0",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2019",
+    "pla": "ALLAUCAT",
+    "tipus_d_emerg_ncia": "Allaus",
+    "incident": "0",
+    "prealerta": "5",
+    "alerta": "0",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2019",
+    "pla": "CAMCAT",
+    "tipus_d_emerg_ncia": "Contaminació marina",
+    "incident": "0",
+    "prealerta": "3",
+    "alerta": "0",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2019",
+    "pla": "INFOCAT",
+    "tipus_d_emerg_ncia": "Incendis forestals",
+    "incident": "0",
+    "prealerta": "20",
+    "alerta": "1",
+    "emerg_ncia": "1"
+  },
+  {
+    "any": "2019",
+    "pla": "INUNCAT",
+    "tipus_d_emerg_ncia": "Inundacions",
+    "incident": "0",
+    "prealerta": "28",
+    "alerta": "6",
+    "emerg_ncia": "1"
+  },
+  {
+    "any": "2019",
+    "pla": "NEUCAT",
+    "tipus_d_emerg_ncia": "Nevades",
+    "incident": "0",
+    "prealerta": "4",
+    "alerta": "1",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2019",
+    "pla": "PENTA",
+    "tipus_d_emerg_ncia": "Nuclear",
+    "incident": "13",
+    "prealerta": "0",
+    "alerta": "0",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2019",
+    "pla": "PLASEQCAT",
+    "tipus_d_emerg_ncia": "Químic en instal·lacions",
+    "incident": "289",
+    "prealerta": "26",
+    "alerta": "9",
+    "emerg_ncia": "1"
+  },
+  {
+    "any": "2019",
+    "pla": "PROCICAT",
+    "tipus_d_emerg_ncia": "Ferrocarril",
+    "incident": "0",
+    "prealerta": "143",
+    "alerta": "3",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2019",
+    "pla": "PROCICAT",
+    "tipus_d_emerg_ncia": "Fred",
+    "incident": "0",
+    "prealerta": "1",
+    "alerta": "0",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2019",
+    "pla": "PROCICAT",
+    "tipus_d_emerg_ncia": "Onada de calor",
+    "incident": "4",
+    "prealerta": "0",
+    "alerta": "3",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2019",
+    "pla": "PROCICAT",
+    "tipus_d_emerg_ncia": "Onatge",
+    "incident": "0",
+    "prealerta": "11",
+    "alerta": "1",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2019",
+    "pla": "PROCICAT",
+    "tipus_d_emerg_ncia": "Altres (fuita gas i contaminació)",
+    "incident": "31",
+    "prealerta": "0",
+    "alerta": "2",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2019",
+    "pla": "RADCAT",
+    "tipus_d_emerg_ncia": "Risc radiològic",
+    "incident": "0",
+    "prealerta": "0",
+    "alerta": "0",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2019",
+    "pla": "SISMICAT",
+    "tipus_d_emerg_ncia": "Sismes",
+    "incident": "13",
+    "prealerta": "1",
+    "alerta": "0",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2019",
+    "pla": "TRANSCAT",
+    "tipus_d_emerg_ncia": "Mercaderies perilloses",
+    "incident": "466",
+    "prealerta": "10",
+    "alerta": "3",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2019",
+    "pla": "VENTCAT",
+    "tipus_d_emerg_ncia": "Vent",
+    "incident": "0",
+    "prealerta": "9",
+    "alerta": "11",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2020",
+    "pla": "AEROCAT",
+    "tipus_d_emerg_ncia": "Aeronàutica",
+    "incident": "0",
+    "prealerta": "15",
+    "alerta": "2",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2020",
+    "pla": "ALLAUCAT",
+    "tipus_d_emerg_ncia": "Allaus",
+    "incident": "0",
+    "prealerta": "1",
+    "alerta": "0",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2020",
+    "pla": "CAMCAT",
+    "tipus_d_emerg_ncia": "Contaminació marina",
+    "incident": "0",
+    "prealerta": "5",
+    "alerta": "0",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2020",
+    "pla": "INFOCAT",
+    "tipus_d_emerg_ncia": "Incendis forestals",
+    "incident": "0",
+    "prealerta": "2",
+    "alerta": "0",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2020",
+    "pla": "INUNCAT",
+    "tipus_d_emerg_ncia": "Inundacions",
+    "incident": "0",
+    "prealerta": "33",
+    "alerta": "10",
+    "emerg_ncia": "1"
+  },
+  {
+    "any": "2020",
+    "pla": "NEUCAT",
+    "tipus_d_emerg_ncia": "Nevades",
+    "incident": "0",
+    "prealerta": "3",
+    "alerta": "4",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2020",
+    "pla": "PENTA",
+    "tipus_d_emerg_ncia": "Nuclear",
+    "incident": "18",
+    "prealerta": "0",
+    "alerta": "0",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2020",
+    "pla": "PLASEQCAT",
+    "tipus_d_emerg_ncia": "Químic en instal·lacions",
+    "incident": "202",
+    "prealerta": "9",
+    "alerta": "10",
+    "emerg_ncia": "3"
+  },
+  {
+    "any": "2020",
+    "pla": "PROCICAT",
+    "tipus_d_emerg_ncia": "Ferrocarril",
+    "incident": "0",
+    "prealerta": "122",
+    "alerta": "1",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2020",
+    "pla": "PROCICAT",
+    "tipus_d_emerg_ncia": "Fred",
+    "incident": "0",
+    "prealerta": "0",
+    "alerta": "0",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2020",
+    "pla": "PROCICAT",
+    "tipus_d_emerg_ncia": "Onada de calor",
+    "incident": "3",
+    "prealerta": "0",
+    "alerta": "2",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2020",
+    "pla": "PROCICAT",
+    "tipus_d_emerg_ncia": "Onatge",
+    "incident": "0",
+    "prealerta": "9",
+    "alerta": "1",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2020",
+    "pla": "PROCICAT",
+    "tipus_d_emerg_ncia": "Altres (fuita gas i contaminació)",
+    "incident": "19",
+    "prealerta": "9",
+    "alerta": "1",
+    "emerg_ncia": "1"
+  },
+  {
+    "any": "2020",
+    "pla": "RADCAT",
+    "tipus_d_emerg_ncia": "Risc radiològic",
+    "incident": "3",
+    "prealerta": "2",
+    "alerta": "0",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2020",
+    "pla": "SISMICAT",
+    "tipus_d_emerg_ncia": "Sismes",
+    "incident": "13",
+    "prealerta": "1",
+    "alerta": "0",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2020",
+    "pla": "TRANSCAT",
+    "tipus_d_emerg_ncia": "Mercaderies perilloses",
+    "incident": "431",
+    "prealerta": "15",
+    "alerta": "7",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2020",
+    "pla": "VENTCAT",
+    "tipus_d_emerg_ncia": "Vent",
+    "incident": "0",
+    "prealerta": "4",
+    "alerta": "10",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2021",
+    "pla": "AEROCAT",
+    "tipus_d_emerg_ncia": "Aeronàutica",
+    "incident": "4",
+    "prealerta": "23",
+    "alerta": "1",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2021",
+    "pla": "ALLAUCAT",
+    "tipus_d_emerg_ncia": "Allaus",
+    "incident": "0",
+    "prealerta": "3",
+    "alerta": "1",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2021",
+    "pla": "CAMCAT",
+    "tipus_d_emerg_ncia": "Contaminació marina",
+    "incident": "0",
+    "prealerta": "9",
+    "alerta": "1",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2021",
+    "pla": "INFOCAT",
+    "tipus_d_emerg_ncia": "Incendis forestals",
+    "incident": "0",
+    "prealerta": "5",
+    "alerta": "3",
+    "emerg_ncia": "1"
+  },
+  {
+    "any": "2021",
+    "pla": "INUNCAT",
+    "tipus_d_emerg_ncia": "Inundacions",
+    "incident": "0",
+    "prealerta": "35",
+    "alerta": "8",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2021",
+    "pla": "NEUCAT",
+    "tipus_d_emerg_ncia": "Nevades",
+    "incident": "0",
+    "prealerta": "5",
+    "alerta": "1",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2021",
+    "pla": "PENTA",
+    "tipus_d_emerg_ncia": "Nuclear*",
+    "incident": "15",
+    "prealerta": "0",
+    "alerta": "0",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2021",
+    "pla": "PLASEQCAT",
+    "tipus_d_emerg_ncia": "Químic en instal·lacions",
+    "incident": "434",
+    "prealerta": "23",
+    "alerta": "7",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2021",
+    "pla": "PROCICAT",
+    "tipus_d_emerg_ncia": "Ferrocarril",
+    "incident": "0",
+    "prealerta": "124",
+    "alerta": "0",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2021",
+    "pla": "PROCICAT",
+    "tipus_d_emerg_ncia": "Fred",
+    "incident": "0",
+    "prealerta": "0",
+    "alerta": "2",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2021",
+    "pla": "PROCICAT",
+    "tipus_d_emerg_ncia": "Onada de calor",
+    "incident": "4",
+    "prealerta": "0",
+    "alerta": "1",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2021",
+    "pla": "PROCICAT",
+    "tipus_d_emerg_ncia": "Onatge",
+    "incident": "1",
+    "prealerta": "12",
+    "alerta": "1",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2021",
+    "pla": "PROCICAT",
+    "tipus_d_emerg_ncia": "Altres (fuita gas i contaminació)",
+    "incident": "15",
+    "prealerta": "9",
+    "alerta": "3",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2021",
+    "pla": "RADCAT",
+    "tipus_d_emerg_ncia": "Risc radiològic",
+    "incident": "3",
+    "prealerta": "0",
+    "alerta": "0",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2021",
+    "pla": "SISMICAT",
+    "tipus_d_emerg_ncia": "Sismes",
+    "incident": "7",
+    "prealerta": "3",
+    "alerta": "0",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2021",
+    "pla": "TRANSCAT",
+    "tipus_d_emerg_ncia": "Mercaderies perilloses",
+    "incident": "475",
+    "prealerta": "16",
+    "alerta": "2",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2021",
+    "pla": "VENTCAT",
+    "tipus_d_emerg_ncia": "Vent",
+    "incident": "0",
+    "prealerta": "5",
+    "alerta": "7",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2022",
+    "pla": "AEROCAT",
+    "tipus_d_emerg_ncia": "Aeronàutica",
+    "incident": "1",
+    "prealerta": "77",
+    "alerta": "4",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2022",
+    "pla": "ALLAUCAT",
+    "tipus_d_emerg_ncia": "Allaus",
+    "incident": "0",
+    "prealerta": "3",
+    "alerta": "0",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2022",
+    "pla": "CAMCAT",
+    "tipus_d_emerg_ncia": "Contaminació marina",
+    "incident": "0",
+    "prealerta": "16",
+    "alerta": "0",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2022",
+    "pla": "INFOCAT",
+    "tipus_d_emerg_ncia": "Incendis forestals",
+    "incident": "0",
+    "prealerta": "15",
+    "alerta": "3",
+    "emerg_ncia": "2"
+  },
+  {
+    "any": "2022",
+    "pla": "INUNCAT",
+    "tipus_d_emerg_ncia": "Inundacions",
+    "incident": "0",
+    "prealerta": "19",
+    "alerta": "15",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2022",
+    "pla": "NEUCAT",
+    "tipus_d_emerg_ncia": "Nevades",
+    "incident": "0",
+    "prealerta": "1",
+    "alerta": "2",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2022",
+    "pla": "PENTA",
+    "tipus_d_emerg_ncia": "Nuclear*",
+    "incident": "17",
+    "prealerta": "0",
+    "alerta": "0",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2022",
+    "pla": "PLASEQCAT",
+    "tipus_d_emerg_ncia": "Químic en instal·lacions",
+    "incident": "430",
+    "prealerta": "29",
+    "alerta": "8",
+    "emerg_ncia": "2"
+  },
+  {
+    "any": "2022",
+    "pla": "PROCICAT",
+    "tipus_d_emerg_ncia": "Ferrocarril",
+    "incident": "0",
+    "prealerta": "157",
+    "alerta": "5",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2022",
+    "pla": "PROCICAT",
+    "tipus_d_emerg_ncia": "Fred",
+    "incident": "0",
+    "prealerta": "0",
+    "alerta": "0",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2022",
+    "pla": "PROCICAT",
+    "tipus_d_emerg_ncia": "Onada de calor",
+    "incident": "3",
+    "prealerta": "0",
+    "alerta": "3",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2022",
+    "pla": "PROCICAT",
+    "tipus_d_emerg_ncia": "Onatge",
+    "incident": "0",
+    "prealerta": "4",
+    "alerta": "0",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2022",
+    "pla": "PROCICAT",
+    "tipus_d_emerg_ncia": "Altres (fuita gas i contaminació)",
+    "incident": "32",
+    "prealerta": "23",
+    "alerta": "2",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2022",
+    "pla": "RADCAT",
+    "tipus_d_emerg_ncia": "Risc radiològic",
+    "incident": "2",
+    "prealerta": "0",
+    "alerta": "0",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2022",
+    "pla": "SISMICAT",
+    "tipus_d_emerg_ncia": "Sismes",
+    "incident": "5",
+    "prealerta": "3",
+    "alerta": "0",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2022",
+    "pla": "TRANSCAT",
+    "tipus_d_emerg_ncia": "Mercaderies perilloses",
+    "incident": "442",
+    "prealerta": "8",
+    "alerta": "0",
+    "emerg_ncia": "0"
+  },
+  {
+    "any": "2022",
+    "pla": "VENTCAT",
+    "tipus_d_emerg_ncia": "Vent",
+    "incident": "0",
+    "prealerta": "11",
+    "alerta": "6",
+    "emerg_ncia": "0"
+  }
+]
