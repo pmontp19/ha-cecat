@@ -505,8 +505,11 @@ Per tant l'única manera de detectar una desactivació és **reconciliar**: reco
 de ser la parella sencera i no `plaacronim` sol, perquè dues files simultànies del mateix pla en
 fases diferents col·lapsarien i la que es perdés no emetria mai el seu event: és el trap 3, i és
 la mateixa clau que fa servir l'estat del coordinator
-([`04`](04-architecture.md) §5, AD-5). El patró és el `_prune_vanished` que `ha-incendiscat` ja
-fa servir per als incendis que s'esvaeixen de la vista ArcGIS
+([`04`](04-architecture.md) §5, AD-5). Una baixa només es col·lapsa amb una alta del mateix
+acrònim en un sol event de canvi de fase quan es donen **tres** condicions: una sola alta, una
+sola baixa, i **les dues fases reconegudes**; amb una fase desconeguda a qualsevol costat la
+baixa s'emet sempre com a event de tancament propi. El patró és el `_prune_vanished` que
+`ha-incendiscat` ja fa servir per als incendis que s'esvaeixen de la vista ArcGIS
 ([`ha-incendiscat/docs/01`](https://github.com/pmontp19/ha-incendiscat/blob/main/docs/01-data-sources.md)
 §2).
 
@@ -639,7 +642,7 @@ Cada trap ve d'una cosa que **he observat**, amb la captura que ho demostra. Cap
 | :---: | --- | --- | --- |
 | 1 | **`plaactivat: "NO"` existeix** i correspon a `PREALERTA`. `[]` i `"NO"` són coses diferents. A més la descripció oficial escriu el domini com a "(Si/No)" i les dades donen `SI`/`NO` | 🗄️ [`prealerta-2024-12-02`](captures/wj9c-j6vf-prealerta-2024-12-02.json); 589/1.146 comunicats amb token `NOACTIVAT`; 📄 descripció del camp | **Mai filtrar per `plaactivat='SI'`** i **mai comparar-lo estrictament**. Normalitzar-lo com `plafase` (`strip` + `casefold` + sense diacrítics); `activated = False` **només** amb el literal `no`; absent o irreconeixible, derivar-lo de `plafase`, que és l'autoritatiu (§3.3) |
 | 2 | La resposta pot ser **`[]`** | 🗄️ [`buit-2026-06-16`](captures/wj9c-j6vf-buit-2026-06-16.json) + 📄 descripció oficial | Llista buida és estat vàlid, no error. Zero plans, entitats a `0`/`off`, mai `unavailable` |
-| 3 | Hi pot haver **més d'una fila**, i **dues poden compartir `plaacronim`**: als 267 comunicats del PROCICAT el token és sempre `PROCICAT` pelat, tot i que el registre hi té quatre plans d'actuació distints | 🗄️ [`dos-plans-2026-01-19`](captures/wj9c-j6vf-dos-plans-2026-01-19.json): INUNCAT i NEUCAT alhora; 🔶 §3.2 nota 2 per als PA del PROCICAT | Modelar una col·lecció indexada per **`(plaacronim, plafase)`**, no per `plaacronim` sol i no un objecte únic. Indexar per l'acrònim sol perdria silenciosament una de dues files simultànies del mateix pla |
+| 3 | Hi pot haver **més d'una fila**, i **dues poden compartir `plaacronim`**: als 267 comunicats del PROCICAT el token és sempre `PROCICAT` pelat, tot i que el registre hi té quatre plans d'actuació distints | 🗄️ [`dos-plans-2026-01-19`](captures/wj9c-j6vf-dos-plans-2026-01-19.json): INUNCAT i NEUCAT alhora; 🔶 §3.2 nota 2 per als PA del PROCICAT | Modelar una col·lecció indexada per **`(plaacronim, plafase)`**, no per `plaacronim` sol i no un objecte únic. Indexar per l'acrònim sol perdria silenciosament una de dues files simultànies del mateix pla. En reconciliar, una baixa i una alta del mateix acrònim només es poden col·lapsar en un sol event de canvi de fase si **totes dues fases són reconegudes**: amb una fase desconeguda a qualsevol costat, cal emetre els events separats ([`04`](04-architecture.md) §5) |
 | 4 | `planom` **no** és el nom complet: és igual a `plaacronim` a 5/5 files observades, contra la seva pròpia descripció | ✅ 🗄️ les 5 files | No fer-lo servir per al nom de l'entitat. Mapatge propi acrònim → nom llarg, amb fallback a l'acrònim |
 | 5 | `plaacronim` pot ser un valor **fora de qualsevol llista coneguda** (`PENTA` no és al registre de la Generalitat; `NOPLA` no és un pla) | 🗄️ 3 comunicats `PENTA`, 2 `NOPLA` | Acrònim desconegut → `warning` una sola vegada + entitat genèrica. **Mai `KeyError`, mai descartar la fila** |
 | 6 | `plaicona` i `comunicatpdf` són **objectes** `{"url": …}`, poden faltar sencers, i `plaicona` pot apuntar a un 404 | ✅ `ico_VENTCAT.png` → 404 amb 135 comunicats de VENTCAT; `cachedContents` no reporta nuls per als camps `url` | `(row.get("comunicatpdf") or {}).get("url")`. Mai construir la URL de la icona des de l'acrònim |

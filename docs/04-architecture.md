@@ -166,39 +166,34 @@ desconegut a l'escala de severitat, i inventar-ho seria pitjor que no ordenar-lo
 `max_phase` és `UNKNOWN` només si **cap** fila té una fase reconeguda; si n'hi ha alguna, mana la
 màxima reconeguda i el literal desconegut queda visible a `phase_raw` i als diagnostics.
 
-### Severitat: `_severity`, i per què no pot llançar mai (AD-8)
+### Severitat: `_severity`, i per què no es compara mai amb `UNKNOWN` (AD-8)
 
 ```python
 def _severity(phase: Phase) -> int:
     """Posició a l'escala de severitat. Mai llança: fora de PHASE_ORDER dona -1."""
     return PHASE_ORDER.index(phase) if phase in PHASE_ORDER else -1
-
-
-def _is_escalation(new: Phase, old: Phase) -> bool:
-    if new not in PHASE_ORDER or old not in PHASE_ORDER:
-        return False          # cap costat comparable: es reporta, no s'escala
-    return _severity(new) > _severity(old)
 ```
 
-`PHASE_ORDER.index(phase)` **pelat llançaria `ValueError` amb `Phase.UNKNOWN`**, i el camí que hi
-arriba no és hipotètic: si l'estat previ és `{(INUNCAT, ALERTA)}` i el cicle següent el
-publicador escriu un `plafase` irreconeixible, `normalise_phase` dona `UNKNOWN`, hi ha
-exactament una alta i una baixa per a `INUNCAT`, i la regla d'aparellament de §5 entra a la
-branca de `phase_changed` i compara les dues severitats. Una excepció allà avortaria **tot** el
-cicle d'actualització, que és exactament el contrari del criteri 6 de
-[`03`](03-feature-spec.md) ("cap excepció") i de la fila de `plafase` desconeguda de §8. El
-conjunt de plans no és tancat ([`01`](01-data-sources.md) §3.2, trap 5): un literal desconegut
-és **esperable**, no excepcional, i ha de degradar de manera segura i sorollosa, mai tombar el
-coordinator.
+`PHASE_ORDER.index(phase)` **pelat llançaria `ValueError` amb `Phase.UNKNOWN`**, i el conjunt de
+plans no és tancat ([`01`](01-data-sources.md) §3.2, trap 5): un literal desconegut és
+**esperable**, no excepcional, i ha de degradar de manera segura i sorollosa, mai tombar el
+coordinator. Una excepció dins del cicle el avortaria sencer, que és exactament el contrari del
+criteri 6 de [`03`](03-feature-spec.md) ("cap excepció") i de la fila de `plafase` desconeguda
+de §8.
 
-Dues regles separades, i totes dues calen:
+**La correcció de fons, però, no és el sentinel: és no fer la comparació.** `escalation` només
+té sentit entre dues fases que **totes dues** tenen posició a `PHASE_ORDER`. Comparar a través
+d'un valor que no en té era el defecte real, i intentar salvar-lo amb un sentinel només movia el
+problema: `_severity(ALERTA) > _severity(UNKNOWN)` és `2 > -1`, cert, i afirmaria una escalada
+en sortir d'un literal desconegut. Per això la regla d'aparellament de §5 **exclou `UNKNOWN` de
+la branca de `phase_changed`**, i la comparació de severitats no hi arriba mai amb un valor
+sense ordre.
 
-1. **`_severity` mai llança.** El sentinel `-1` queda per sota de qualsevol fase real, amb el
-   mateix estil de guard que ja fa servir `resolve_activated`.
-2. **`escalation` és `false` si qualsevol dels dos costats no és a `PHASE_ORDER`.** El sentinel
-   sol no n'hi hauria prou: `_severity(ALERTA) > _severity(UNKNOWN)` seria `2 > -1`, cert, i
-   afirmaria una escalada en sortir d'un literal desconegut. Una transició cap a `UNKNOWN` o des
-   d'`UNKNOWN` **es reporta**, però no es qualifica mai d'escalada.
+Conseqüència sobre aquest codi: **el sentinel `-1` ja no és portant.** Es manté igualment com a
+defensa en profunditat, perquè una funció que llança per un valor esperable és una trampa per a
+qualsevol futur cridant, però ja no és el que fa segura la comparació. Un sentinel la feina del
+qual era deixar que un valor sense ordre sobrevisqués a una comparació ordenada era el senyal
+que la comparació no s'hauria d'estar fent.
 
 Això no posa `UNKNOWN` a `PHASE_ORDER` i per tant no toca AD-8: li dona una posició definida i
 no comparable, que és el que AD-8 volia dir.
@@ -380,9 +375,11 @@ resolubles amb el que la font publica:
    `escalation: true` ([`03`](03-feature-spec.md) §5), de manera que l'usuari rep una
    notificació d'escalada per un episodi que no ha escalat.
 
-La segona **no** està coberta pel paràgraf d'ambigüitat de més avall, que només parla del cas de
-més d'una alta o més d'una baixa: aquest és estrictament 1-a-1 i entra a la branca
-d'aparellament.
+La segona **no** la resol cap de les dues sortides a la branca plana de més avall: no és
+ambigüitat de cardinalitat (és estrictament 1-a-1) i cap dels dos costats no és `UNKNOWN`
+(`PREALERTA` i `ALERTA` són totes dues a `PHASE_ORDER`). Per tant compleix les tres condicions,
+entra a la branca d'aparellament i emet `escalation: true`. La tercera condició afegida en
+aquesta revisió no hi toca res.
 
 Dues sortides considerades i rebutjades, perquè ningú les reobri:
 
@@ -432,29 +429,69 @@ for acronym in {a for a, _ in added | removed}:
     adds    = [k for k in added   if k[0] == acronym]
     removes = [k for k in removed if k[0] == acronym]
 
-    if len(adds) == 1 and len(removes) == 1:
-        # Exactament una alta i una baixa del mateix acrònim: és un canvi de fase.
+    # L'aparellament demana TRES condicions alhora, no dues.
+    pairs = (
+        len(adds) == 1
+        and len(removes) == 1
+        and adds[0][1] in PHASE_ORDER           # cap costat pot ser Phase.UNKNOWN
+        and removes[0][1] in PHASE_ORDER
+    )
+    if pairs:
+        # Una alta, una baixa, i totes dues fases ordenables: és un canvi de fase.
         # S'emet un sol event i el parell started/ended queda suprimit.
         new, old = current[adds[0]], previous[removes[0]]
         fire(EVENT_PLAN_PHASE_CHANGED, new,
              previous_phase=old.phase, previous_phase_raw=old.phase_raw,
-             escalation=_is_escalation(new.phase, old.phase))
+             escalation=_severity(new.phase) > _severity(old.phase))
         continue
 
     # Qualsevol altra combinació: no s'endevina res.
+    for key in removes:
+        fire(EVENT_PLAN_PHASE_ENDED, previous[key],
+             previous_phase_raw=previous[key].phase_raw,
+             duration_minutes=_duration(previous[key]))
     for key in adds:
         if current[key].phase is not Phase.NONE:
             fire(EVENT_PLAN_PHASE_STARTED, current[key])
-    for key in removes:
-        fire(EVENT_PLAN_PHASE_ENDED, previous[key], duration_minutes=_duration(previous[key]))
 ```
 
-**Quan un acrònim té més d'una alta o més d'una baixa al mateix cicle, la correspondència és
-ambigua i no s'intenta resoldre.** Si dues files de PROCICAT desapareixen i n'apareix una, no hi
-ha cap manera honesta de dir quina de les dues "ha canviat de fase" i quina "s'ha acabat":
-s'emeten els `started` i els `ended` plans i s'acaba. Això està escrit aquí explícitament perquè
-ningú no hi dedueixi una heurística d'aparellament per severitat, per ordre o per `started_at`.
-Un event de més és soroll; un aparellament inventat és una mentida sobre què ha passat.
+**Les tres condicions de l'aparellament, i cap més.** Una alta per a l'acrònim, una baixa per a
+l'acrònim, i **les dues fases a `PHASE_ORDER`**. Si en falla qualsevol, s'emeten els events
+plans: un `phase_ended` per clau retirada i un `phase_started` per clau afegida.
+
+Dos casos cauen a la branca plana, i per motius diferents:
+
+1. **Ambigüitat de cardinalitat**: més d'una alta o més d'una baixa per al mateix acrònim. Si
+   dues files de PROCICAT desapareixen i n'apareix una, no hi ha cap manera honesta de dir quina
+   de les dues "ha canviat de fase" i quina "s'ha acabat". Això està escrit explícitament perquè
+   ningú no hi dedueixi una heurística d'aparellament per severitat, per ordre o per
+   `started_at`. Un event de més és soroll; un aparellament inventat és una mentida sobre què ha
+   passat.
+2. **Un costat és `UNKNOWN`**: la fase d'entrada o la de sortida no té posició a l'escala. Un
+   `phase_changed` afirma implícitament que sabem entre quines dues fases s'ha mogut l'episodi, i
+   amb un literal irreconeixible no ho sabem. Emetre dos events en lloc d'un és el cost
+   deliberat i correcte: **no sabem què ha passat, i un sol `phase_changed` confiat estaria
+   afirmant el contrari.**
+
+Amb això, `escalation` només es calcula entre dues fases que totes dues tenen posició a
+`PHASE_ORDER`, que és l'únic cas on "changed" vol dir alguna cosa (§4).
+
+#### Exemple treballat: `ALERTA` cap a `UNKNOWN` cap a `EMERGÈNCIA`
+
+És la seqüència que la regla de tres condicions arregla, i val la pena seguir-la sencera:
+
+| Cicle | Estat | Events emesos |
+| --- | --- | --- |
+| N | `{(INUNCAT, ALERTA)}` | (cap canvi) |
+| N+1 | `{(INUNCAT, UNKNOWN)}`, el publicador escriu un `plafase` irreconeixible | `phase_ended(INUNCAT, ALERTA)` **+** `phase_started(INUNCAT, UNKNOWN)`. **Cap `phase_changed`** |
+| N+2 | `{(INUNCAT, EMERGÈNCIA)}` | `phase_ended(INUNCAT, UNKNOWN)` **+** `phase_started(INUNCAT, EMERGÈNCIA)` |
+
+**El blueprint ja escolta `phase_started`, per tant l'escalada a `EMERGÈNCIA` es notifica sense
+tocar el blueprint.** Amb la regla de dues condicions, el cicle N+2 hauria aparellat
+`UNKNOWN → EMERGÈNCIA` en un sol `phase_changed` amb `escalation: false` (perquè un costat no és
+a `PHASE_ORDER`), i com que el blueprint filtra `phase_changed` per `escalation: true` i no
+s'hauria emès cap `phase_started`, la pujada a la fase més greu del sistema no hauria arribat a
+l'usuari per cap camí. Aquest és el motiu de la regla, no un efecte lateral.
 
 Quatre propietats que es deriven directament de les traps:
 
@@ -471,10 +508,12 @@ Quatre propietats que es deriven directament de les traps:
    que `ha-incendiscat` va necessitar per a la vista ArcGIS.
 4. **Dues files simultànies del mateix acrònim en fases diferents generen dos `phase_started`,
    un per cadascuna**, i cap no es perd. És el cas que la clau composta existeix per cobrir.
-5. **La branca d'aparellament no pot llançar.** Compara amb `_is_escalation`, que dona `false`
-   quan qualsevol dels dos costats no és a `PHASE_ORDER` (§4). Una fila que passa a un `plafase`
-   irreconeixible emet el seu `phase_changed` amb `escalation: false` i el literal cru viatja al
-   payload a `phase_raw`; no hi ha cap `ValueError` que avorti el cicle.
+5. **La branca d'aparellament no pot llançar, i ara per construcció.** La tercera condició
+   garanteix que `_severity` només rep fases que són a `PHASE_ORDER`, per tant la comparació no
+   pot arribar mai a un valor sense ordre. Una fila que passa a un `plafase` irreconeixible surt
+   per la branca plana amb `phase_ended` + `phase_started`, i el literal cru viatja als dos
+   payloads (`previous_phase_raw` i `phase_raw`); no hi ha cap `ValueError` que avorti el cicle
+   (criteri 6 de [`03`](03-feature-spec.md)).
 
 ### Literals desconeguts
 
@@ -688,7 +727,7 @@ per mantenir-les. `pyproject.toml` amb el mateix conjunt de regles de `ruff` que
 | AD-2 | `requirements: []` | Un paquet propi a PyPI | El client són ~90 línies. Mateixa política que `ha-incendiscat`, `ha-avisoscat` i `dpc` |
 | AD-3 | `$select=:*,*` i `:created_at` com a font primària de l'inici de fase | Només `fasedatahora` | ISO-8601 en UTC contra `DD/MM/YYYY HH:MM` amb el fus implícit. `started_at_source` fa la degradació observable ([`01`](01-data-sources.md) §7.2) |
 | AD-4 | `If-Modified-Since`, mai `ETag` | `ETag` condicional | Mesurat: l'`ETag` arriba amb el sufix `--gzip` duplicat i retorna 200; `If-Modified-Since` retorna 304 ([`01`](01-data-sources.md) §1) |
-| AD-5 | Identitat de l'episodi = `(acronym, phase)`, **i és també la clau del `dict` d'estat** | `:id` de Socrata, hash de la fila, o indexar per `plaacronim` sol | `comunicatpdf` canvia dins de la mateixa fase i `:id` canvia en un canvi de fase ([`01`](01-data-sources.md) trap 11). Indexar per l'acrònim sol perdria una de dues files simultànies de PROCICAT, que §3.2 nota 2 fa plausible (§5) |
+| AD-5 | Identitat de l'episodi = `(acronym, phase)`, **i és també la clau del `dict` d'estat**. L'aparellament que col·lapsa una baixa i una alta en un sol `phase_changed` demana **tres** condicions: una alta, una baixa, i **les dues fases a `PHASE_ORDER`** | `:id` de Socrata, hash de la fila, indexar per `plaacronim` sol, o aparellar amb només les dues condicions de cardinalitat | `comunicatpdf` canvia dins de la mateixa fase i `:id` canvia en un canvi de fase ([`01`](01-data-sources.md) trap 11). Indexar per l'acrònim sol perdria una de dues files simultànies de PROCICAT, que §3.2 nota 2 fa plausible. I aparellar sense la tercera condició col·lapsaria `UNKNOWN → EMERGÈNCIA` en un `phase_changed` amb `escalation: false`, que cap camí de notificació no recull (§5) |
 | AD-6 | `plafase` mana, `plaactivat` és derivat: normalitzat com `plafase`, `False` només amb `no`, i derivat de la fase si no es reconeix | Filtrar o comparar per `plaactivat == 'SI'` | `plaactivat: "NO"` és la prealerta, el 51,4% dels comunicats: filtrar amaga mitja font. I la descripció oficial escriu "(Si/No)" mentre les dades donen `SI`/`NO`, per tant una comparació estricta pot deixar un sensor `SAFETY` a `off` durant una emergència ([`01`](01-data-sources.md) traps 1 i 14, §3.3) |
 | AD-7 | Un atribut `plans` en lloc de N entitats per pla | 13-18 binary sensors | `plaacronim` no és un conjunt tancat (`PENTA`, `NOPLA`). Una llista blanca quedaria obsoleta sense avís ([`03`](03-feature-spec.md) §7) |
 | AD-8 | `Phase.UNKNOWN` fora de `PHASE_ORDER`, amb `_severity` que hi dona `-1` en lloc de llançar i `escalation: false` sempre que un costat no sigui comparable | Col·locar-la a dalt o a baix de l'escala, o cridar `PHASE_ORDER.index()` pelat | No se sap on va un literal desconegut i inventar-ho és pitjor que no ordenar-lo. Però `index()` pelat llançaria `ValueError` a la branca d'aparellament i avortaria el cicle sencer, contra el criteri 6 de [`03`](03-feature-spec.md): un literal desconegut és esperable, no excepcional (§4) |

@@ -97,7 +97,7 @@ import de Home Assistant.
 - [ ] Els mateixos valors irreconeixibles sobre una fila de `PREALERTA` → `activated = False` (mana la fase, AD-6)
 - [ ] `plaactivat` irreconeixible **i** `plafase` irreconeixible → `activated = False`, cap excepció, els dos literals conservats
 - [ ] `_severity(Phase.UNKNOWN)` retorna `-1` i **no llança**; `_severity` de les quatre fases de `PHASE_ORDER` retorna la seva posició
-- [ ] `_is_escalation` dona `False` si qualsevol dels dos costats no és a `PHASE_ORDER`, en **les dues** direccions (`alerta → unknown` i `unknown → alerta`), i `True` només amb `prealerta → alerta` i similars
+- [ ] `_severity` és l'única funció de severitat: **no** hi ha cap helper d'escalada que accepti fases fora de `PHASE_ORDER`, perquè la comparació ja no s'hi arriba a fer (§4 i §5 de [`04`](04-architecture.md)). L'escalada es calcula amb `_severity(new) > _severity(old)` dins de la branca d'aparellament, que garanteix que totes dues fases són ordenables
 - [ ] Fase desconeguda → `Phase.UNKNOWN`, i `phase_raw` conserva el literal
 - [ ] `plaacronim` desconegut (`PENTA`, `NOPLA`) → fila vàlida amb `name` = l'acrònim
 - [ ] `comunicatpdf`/`plaicona` absents o no-`dict` → `None`, sense excepció
@@ -217,9 +217,11 @@ claus `(acronym, phase)` més la regla d'aparellament del §5 de [`04`](04-archi
 - [ ] `{(INUNCAT, alerta)}` → `{(INUNCAT, prealerta)}` dispara `cecat_plan_phase_changed` amb `escalation: false`
 - [ ] `{}` → `{(PROCICAT, prealerta), (PROCICAT, alerta)}` dispara **dos** `cecat_plan_phase_started`, un per fase. Cap dels dos es perd i no es col·lapsen
 - [ ] Cas ambigu: `{(PROCICAT, prealerta), (PROCICAT, alerta)}` → `{(PROCICAT, emergencia)}` dispara **dos** `phase_ended` i **un** `phase_started`, i **cap** `phase_changed`. No s'aparella res quan hi ha més d'una alta o més d'una baixa per acrònim
-- [ ] `{(INUNCAT, alerta)}` → el mateix acrònim amb un `plafase` **irreconeixible** dispara **un** `cecat_plan_phase_changed` amb `escalation: **false**` i **cap excepció**. El payload porta `phase_raw` amb el literal cru i `previous_phase_raw` amb `ALERTA` (criteri 6b de [`03`](03-feature-spec.md))
-- [ ] El camí invers, d'un `plafase` irreconeixible cap a `alerta`, també dona `escalation: false`: sortir d'`unknown` no és una escalada
-- [ ] Tot `phase_changed` porta `phase_raw` i `previous_phase_raw`, també quan les dues fases són reconegudes
+- [ ] L'aparellament demana **tres** condicions: una alta per a l'acrònim, una baixa, **i les dues fases a `PHASE_ORDER`**. Un test comprova que amb un costat `unknown` **no** s'emet cap `phase_changed`
+- [ ] `{(INUNCAT, alerta)}` → el mateix acrònim amb un `plafase` **irreconeixible** dispara **un** `cecat_plan_phase_ended` (`previous_phase_raw = ALERTA`) **i un** `cecat_plan_phase_started` (`phase = unknown`, `phase_raw` amb el literal cru), **cap** `phase_changed`, i cap excepció (criteri 6b de [`03`](03-feature-spec.md))
+- [ ] **Exemple treballat de dos cicles**, seguint el criteri 6c de [`03`](03-feature-spec.md): partint de l'estat anterior, la fila arriba com a `EMERGÈNCIA` i dispara un `phase_ended` (`previous_phase = unknown`, `previous_phase_raw` amb el literal cru) i un `phase_started` (`phase = emergencia`), **cap** `phase_changed`. És el camí que fa que l'escalada a la fase més greu arribi al blueprint sense tocar-lo
+- [ ] `_severity` no rep mai una fase fora de `PHASE_ORDER` des de la branca d'aparellament: un test amb un doble o una asserció ho comprova
+- [ ] Tot `phase_changed` porta `phase_raw` i `previous_phase_raw`, i tot `phase_ended` porta `previous_phase_raw`, també quan les fases són reconegudes
 - [ ] `{(INUNCAT, alerta)}` → `{}` en un cicle **vàlid** dispara `cecat_plan_phase_ended` amb `duration_minutes` calculat
 - [ ] `{(INUNCAT, alerta)}` → cicle **fallit** dispara **cap** event
 - [ ] Només canvia `comunicatpdf` (mateix acrònim, mateixa fase) → **cap** event
@@ -303,6 +305,9 @@ llengua de referència. `brand/icon.png` i `icon@2x.png`.
 - [ ] El filtre per `plans` buit vol dir "tots"
 - [ ] Escolta `cecat_plan_phase_started` i `cecat_plan_phase_changed` amb `escalation: true`
 - [ ] La descripció del blueprint documenta el fals positiu conegut del filtre `escalation: true` (§5 de [`03`](03-feature-spec.md), obert 6): amb dos PA distints sota el mateix `plaacronim` pot notificar una escalada que no ha passat
+- [ ] **`phase: unknown` passa el filtre amb els tres valors de `min_phase`** (`prealerta`, `alerta`, `emergencia`), sense excepció (§5.1 de [`03`](03-feature-spec.md), criteri 15b)
+- [ ] **Cap error de plantilla amb cap valor de `phase`**, `unknown` inclòs: un test renderitza la condició amb les cinc fases × els tres `min_phase` i cap combinació peta. La condició comprova `unknown` abans de qualsevol `index()`, i el curtcircuit de l'`or` és el que ho garanteix
+- [ ] El missatge renderitzat per a `phase: unknown` **diu que la fase no s'ha reconegut i mostra `phase_raw`**, en lloc de presentar `unknown` com si fos una fase coneguda
 - [ ] `test_blueprint.py` valida l'esquema del YAML
 
 **Verificació.** `pytest tests/test_blueprint.py` verd + importació manual a una instància real.
