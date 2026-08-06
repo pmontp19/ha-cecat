@@ -245,7 +245,7 @@ Regla, la mateixa tolerància que `plafase` (trap 14) i coherent amb AD-6 "`plaf
 
 `activated = False` **només** quan el valor normalitzat és exactament `no`. Un literal que no
 reconeixem no pot llegir-se mai com a "no passa res": el que fa és cedir la decisió a `plafase`,
-que és el camp autoritatiu. Si la fase també és desconeguda (`Phase.UNKNOWN`, que queda fora de
+que és el camp autoritatiu. Si la fase també és desconeguda (`Phase.UNRECOGNIZED`, que queda fora de
 `PHASE_ORDER` per AD-8) no hi ha res amb què comparar i `activated` és `False`, amb els dos
 literals registrats als diagnostics.
 
@@ -505,10 +505,10 @@ Per tant l'única manera de detectar una desactivació és **reconciliar**: reco
 de ser la parella sencera i no `plaacronim` sol, perquè dues files simultànies del mateix pla en
 fases diferents col·lapsarien i la que es perdés no emetria mai el seu event: és el trap 3, i és
 la mateixa clau que fa servir l'estat del coordinator
-([`04`](04-architecture.md) §5, AD-5). Una baixa només es col·lapsa amb una alta del mateix
-acrònim en un sol event de canvi de fase quan es donen **tres** condicions: una sola alta, una
-sola baixa, i **les dues fases reconegudes**; amb una fase desconeguda a qualsevol costat la
-baixa s'emet sempre com a event de tancament propi. El patró és el `_prune_vanished` que
+([`04`](04-architecture.md) §5, AD-5). Cada clau que desapareix emet **sempre** el seu event de
+tancament, amb la durada; **a més**, si al mateix cicle hi ha una sola alta i una sola baixa per
+a l'acrònim i **les dues fases són reconegudes**, s'hi afegeix un event de canvi de fase. Aquell
+event addicional no en substitueix cap: el tancament hi és igualment. El patró és el `_prune_vanished` que
 `ha-incendiscat` ja fa servir per als incendis que s'esvaeixen de la vista ArcGIS
 ([`ha-incendiscat/docs/01`](https://github.com/pmontp19/ha-incendiscat/blob/main/docs/01-data-sources.md)
 §2).
@@ -642,7 +642,7 @@ Cada trap ve d'una cosa que **he observat**, amb la captura que ho demostra. Cap
 | :---: | --- | --- | --- |
 | 1 | **`plaactivat: "NO"` existeix** i correspon a `PREALERTA`. `[]` i `"NO"` són coses diferents. A més la descripció oficial escriu el domini com a "(Si/No)" i les dades donen `SI`/`NO` | 🗄️ [`prealerta-2024-12-02`](captures/wj9c-j6vf-prealerta-2024-12-02.json); 589/1.146 comunicats amb token `NOACTIVAT`; 📄 descripció del camp | **Mai filtrar per `plaactivat='SI'`** i **mai comparar-lo estrictament**. Normalitzar-lo com `plafase` (`strip` + `casefold` + sense diacrítics); `activated = False` **només** amb el literal `no`; absent o irreconeixible, derivar-lo de `plafase`, que és l'autoritatiu (§3.3) |
 | 2 | La resposta pot ser **`[]`** | 🗄️ [`buit-2026-06-16`](captures/wj9c-j6vf-buit-2026-06-16.json) + 📄 descripció oficial | Llista buida és estat vàlid, no error. Zero plans, entitats a `0`/`off`, mai `unavailable` |
-| 3 | Hi pot haver **més d'una fila**, i **dues poden compartir `plaacronim`**: als 267 comunicats del PROCICAT el token és sempre `PROCICAT` pelat, tot i que el registre hi té quatre plans d'actuació distints | 🗄️ [`dos-plans-2026-01-19`](captures/wj9c-j6vf-dos-plans-2026-01-19.json): INUNCAT i NEUCAT alhora; 🔶 §3.2 nota 2 per als PA del PROCICAT | Modelar una col·lecció indexada per **`(plaacronim, plafase)`**, no per `plaacronim` sol i no un objecte únic. Indexar per l'acrònim sol perdria silenciosament una de dues files simultànies del mateix pla. En reconciliar, una baixa i una alta del mateix acrònim només es poden col·lapsar en un sol event de canvi de fase si **totes dues fases són reconegudes**: amb una fase desconeguda a qualsevol costat, cal emetre els events separats ([`04`](04-architecture.md) §5) |
+| 3 | Hi pot haver **més d'una fila**, i **dues poden compartir `plaacronim`**: als 267 comunicats del PROCICAT el token és sempre `PROCICAT` pelat, tot i que el registre hi té quatre plans d'actuació distints | 🗄️ [`dos-plans-2026-01-19`](captures/wj9c-j6vf-dos-plans-2026-01-19.json): INUNCAT i NEUCAT alhora; 🔶 §3.2 nota 2 per als PA del PROCICAT | Modelar una col·lecció indexada per **`(plaacronim, plafase)`**, no per `plaacronim` sol i no un objecte únic. Indexar per l'acrònim sol perdria silenciosament una de dues files simultànies del mateix pla. En reconciliar, cada clau que apareix i cada clau que desapareix emeten **sempre** el seu event; **a més**, una baixa i una alta del mateix acrònim afegeixen un event de canvi de fase només si **totes dues fases són reconegudes** ([`04`](04-architecture.md) §5) |
 | 4 | `planom` **no** és el nom complet: és igual a `plaacronim` a 5/5 files observades, contra la seva pròpia descripció | ✅ 🗄️ les 5 files | No fer-lo servir per al nom de l'entitat. Mapatge propi acrònim → nom llarg, amb fallback a l'acrònim |
 | 5 | `plaacronim` pot ser un valor **fora de qualsevol llista coneguda** (`PENTA` no és al registre de la Generalitat; `NOPLA` no és un pla) | 🗄️ 3 comunicats `PENTA`, 2 `NOPLA` | Acrònim desconegut → `warning` una sola vegada + entitat genèrica. **Mai `KeyError`, mai descartar la fila** |
 | 6 | `plaicona` i `comunicatpdf` són **objectes** `{"url": …}`, poden faltar sencers, i `plaicona` pot apuntar a un 404 | ✅ `ico_VENTCAT.png` → 404 amb 135 comunicats de VENTCAT; `cachedContents` no reporta nuls per als camps `url` | `(row.get("comunicatpdf") or {}).get("url")`. Mai construir la URL de la icona des de l'acrònim |
@@ -676,6 +676,7 @@ Cada trap ve d'una cosa que **he observat**, amb la captura que ho demostra. Cap
 | [`analisi-cadencia-comunicats-2026-08-06.txt`](captures/analisi-cadencia-comunicats-2026-08-06.txt) | ✅ sortida de l'anàlisi de §7.3 i §8 | 2026-08-06 |
 | [`registre-plans-generalitat-2026-08-06.json`](captures/registre-plans-generalitat-2026-08-06.json) | ✅ `xqqe-tgav` amb `ambit='Generalitat'`, 17 files | 2026-08-06 |
 | [`wfei-fjk5-activacions-2017-2022.json`](captures/wfei-fjk5-activacions-2017-2022.json) | ✅ `wfei-fjk5` sencer, 102 files | 2026-08-06 |
+| [`cdx-wj9c-j6vf-2026-08-06.txt`](captures/cdx-wj9c-j6vf-2026-08-06.txt) | ✅ índex CDX de la Wayback Machine per a l'endpoint, 26 entrades. Sosté el recompte i el desglossament per data d'aquesta mateixa secció | 2026-08-06 |
 
 ⚠️ La captura de dos plans és una **reconstrucció**: la Wayback Machine va arxivar dues
 consultes filtrades del mateix segon, no una resposta sense filtres amb dues files. La forma
@@ -683,11 +684,13 @@ consultes filtrades del mateix segon, no una resposta sense filtres amb dues fil
 tests que en derivin.
 
 Nota metodològica: **cap dels snapshots arxivats és meu.** L'índex CDX de la Wayback Machine per
-a aquest endpoint té 26 entrades:
+a aquest endpoint té 26 entrades, desades literalment a
+[`captures/cdx-wj9c-j6vf-2026-08-06.txt`](captures/cdx-wj9c-j6vf-2026-08-06.txt) ✅ (26 línies,
+una per entrada, amb `timestamp`, URL, codi i mida). El desglossament per data suma 26:
 
 | Data | Entrades | Qui sembla que és |
 | --- | ---: | --- |
-| 2024-12-02 | 3 | La graella web de Socrata: una projecció `SELECT … as __select_alias__` i un `count('*')`, que és exactament el que emet el portal quan algú obre la pàgina del dataset |
+| 2024-12-02 | 2 | La graella web de Socrata: una projecció `SELECT … as __select_alias__` i un `count('*')`, que és exactament el que emet el portal quan algú obre la pàgina del dataset |
 | 2026-01-19 | 21 | Un consumidor **automatitzat**: `$where=plaactivat='SI' AND upper(plaacronim)='<ACRONIM>'`, una consulta per acrònim, totes dins de 7 segons |
 | 2026-06-16 | 1 | L'endpoint pelat, que va retornar `[]` |
 | 2026-07-03 | 2 | El mateix consumidor automatitzat, dos acrònims |
@@ -734,7 +737,7 @@ natura (§3.2), i el seu filtre `plaactivat='SI'` és el trap núm. 1 d'aquest d
 > | 3 | **Si un canvi de fase substitueix la fila o l'edita.** Una sola transició observada | Mitjà. Decideix si `:created_at` és fiable com a inici de fase | Fer servir `:created_at` amb `fasedatahora` de reserva, i disparar events per `(plaacronim, plafase)` mai per `:id` (trap 11) |
 > | 4 | **`plaicona` de VENTCAT i PLASEQTA** (les seves icones donen 404) | Nul. Ja hem decidit no fer servir `plaicona` (§11.3) | Cap |
 > | 5 | **El contenidor Azure de comunicats no és una API documentada.** L'he fet servir per fer arqueologia, no en runtime | Nul mentre no en depenguem | **No consumir-lo des de la integració.** Si algun dia es vol històric, cal negociar-ho amb la font |
-> | 6 | **Dos plans d'actuació distints sota el mateix `plaacronim` es poden confondre en un sol canvi de fase.** Si el PROCICAT reporta l'acrònim pelat (obert 1), un cicle on un PA s'acaba i un altre comença dona una alta i una baixa i s'emet un `cecat_plan_phase_changed` amb `escalation: true` que afirma una escalada que no ha passat | Baix, però visible: el blueprint notifica per `escalation: true` | **Limitació acceptada i documentada**, no mitigada: corroborar amb `plaicona` o `descripcio` seria construir una porta de correcció sobre dos camps poc fiables (§6.3, §9). Detall i alternatives rebutjades a [`04`](04-architecture.md) §5. Es tanca sola si l'obert 1 resol que els PA porten acrònims distints |
+> | 6 | **Dos plans d'actuació distints sota el mateix `plaacronim` poden generar un event de canvi de fase que no s'ha produït.** Si el PROCICAT reporta l'acrònim pelat (obert 1), un cicle on un PA s'acaba i un altre comença dona una alta i una baixa, i **s'hi afegeix** un `cecat_plan_phase_changed` amb `escalation: true` que afirma una escalada que no ha passat | Baix i **estret**: els events de començament i de tancament d'aquell cicle són individualment correctes, i el blueprint, que només escolta `phase_started`, no se'n veu afectat. Només ho pateix qui filtri per `escalation: true` | **Limitació acceptada i documentada**, no mitigada: corroborar amb `plaicona` o `descripcio` seria construir una porta de correcció sobre dos camps poc fiables (§6.3, §9). Detall i alternatives rebutjades a [`04`](04-architecture.md) §5. Es tanca sola si l'obert 1 resol que els PA porten acrònims distints |
 >
 > Cap dels sis bloqueja començar. Els dos que importen (2 i 3) es tanquen sols la primera
 > vegada que hi hagi una emergència o una transició de fase reals, el 6 depèn del mateix que

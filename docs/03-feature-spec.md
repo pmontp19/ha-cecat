@@ -97,13 +97,33 @@ La fase més alta activa a Catalunya. És la que va al dashboard i a les automac
 | --- | --- |
 | `translation_key` | `max_phase` |
 | `device_class` | `SensorDeviceClass.ENUM` |
-| `options` | `["none", "prealerta", "alerta", "emergencia", "unknown"]` |
+| `options` | `["none", "prealerta", "alerta", "emergencia", "unrecognized"]` |
 | Estat quan la resposta és `[]` | **`none`** |
 | Icona | `mdi:shield-alert-outline` (fixa; **no** `plaicona`, vegeu [`01`](01-data-sources.md) §11.3) |
 
-Ordre de severitat: `none` < `prealerta` < `alerta` < `emergencia`. `unknown` és la vàlvula
-d'escapament: si `plafase` porta un literal que no reconeixem, l'estat és `unknown` i s'emet un
+Ordre de severitat: `none` < `prealerta` < `alerta` < `emergencia`. `unrecognized` és la vàlvula
+d'escapament: si `plafase` porta un literal que no reconeixem, l'estat és `unrecognized` i s'emet un
 `warning` **una sola vegada** per literal (patró de `nina`, [`02`](02-existing-integrations.md) §2).
+
+> ⚠️ **Per què el valor és `unrecognized` i no `unknown`, i no s'ha de revertir.** `unknown` és
+> el `STATE_UNKNOWN` reservat de Home Assistant, el que una entitat mostra quan no té estat.
+> Fer-lo servir aquí faria **indistingible** "la font ha publicat un `plafase` que no reconeixem"
+> de "aquesta entitat encara no té estat", a la màquina d'estats, a les plantilles, a l'historial
+> i a la interfície. Dues conseqüències concretes: el guard gairebé universal
+> `states('sensor.…') not in ['unknown', 'unavailable']` s'empassaria precisament el senyal que
+> tota la vàlvula d'escapament existeix per fer visible, i una automació que dispari en entrar a
+> l'estat saltaria a **cada reinici** de Home Assistant, abans del primer refresc. Amb un valor
+> propi, cap de les dues coses passa.
+>
+> S'escriu en **anglès americà** (`unrecognized`, no `unrecognised`) perquè aquesta cadena viu a
+> la màquina d'estats de Home Assistant, que fa servir anglès americà a tot arreu; l'etiqueta que
+> veu l'usuari surt de `translations/{ca,es,en}.json` i en català és "Desconeguda". `unavailable`
+> continua sent exclusiu del guard de dades velles ([`04`](04-architecture.md) §5), i `none` el
+> de la resposta buida: els tres conceptes queden separats.
+>
+> Les claus de diagnòstic `unknown_phases`, `unknown_acronyms` i `unknown_activated` **no** es
+> renombren: nomenen el concepte intern de literal no reconegut i no creuen mai cap a la màquina
+> d'estats, per tant canviar-les seria soroll sense cap benefici per a l'usuari.
 
 Normalització del literal: `casefold()` **i sense diacrítics**, perquè el valor documentat és
 `EMERGÈNCIA` amb accent obert i mai s'ha observat en viu ([`01`](01-data-sources.md) trap 14).
@@ -147,7 +167,7 @@ Esquema de cada element de `plans`:
 ```jsonc
 { "acronym": "INUNCAT",          // plaacronim, cru, majúscules
   "name": "INUNCAT",             // nom llarg del mapatge propi; fallback a l'acrònim
-  "phase": "alerta",             // normalitzat: prealerta|alerta|emergencia|unknown
+  "phase": "alerta",             // normalitzat: prealerta|alerta|emergencia|unrecognized
   "phase_raw": "ALERTA",         // literal original, sempre present
   "activated": true,             // plaactivat normalitzat; derivat de la fase si no es reconeix
   "started_at": "2026-08-05T11:18:09+00:00",  // :created_at, o fasedatahora, o null
@@ -270,18 +290,35 @@ substitueix la fila en un canvi de fase ([`01`](01-data-sources.md) traps 11 i �
 altra clau genera events duplicats o els perd. L'estat del coordinator està indexat per aquesta
 mateixa clau, no per l'acrònim sol ([`04`](04-architecture.md) §5, trap 3).
 
+### Cap event no en suprimeix cap altre, i què costa això
+
+**`phase_started` s'emet per a cada clau que apareix i `phase_ended` per a cada clau que
+desapareix, sempre.** `phase_changed` és **additiu**: s'emet **a més** del parell, mai en lloc
+seu, i només quan es compleixen les tres condicions de §4.2.
+
+Per tant una transició del mateix acrònim, per exemple `ALERTA` cap a `EMERGÈNCIA`, emet **tres**
+events: `phase_ended(ALERTA)` amb la seva durada, `phase_started(EMERGÈNCIA)` i
+`phase_changed` amb `escalation: true`. Tres és el recompte honest: una fase s'ha acabat, una
+altra ha començat, i el parell és un canvi.
+
+La conseqüència que importa és que **un consumidor d'un sol event no pot equivocar-se**. Qui
+escolta només `phase_started` rep la fase nova tant si la fila apareix de zero com si escala; qui
+escolta només `phase_ended` rep totes les fases que s'acaben, amb `duration_minutes`, també les
+intermèdies d'un episodi.
+
+> ⚠️ **El cost, dit clarament: qui escolti `phase_started` i `phase_changed` alhora rebrà DUES
+> notificacions per una sola transició.** No és un error, és la contrapartida de no suprimir res.
+> Per això cada recepta de §6 declara **un sol carril** i el blueprint també (§5), i els carrils
+> no s'han de combinar tret que es vulgui expressament la notificació doble.
+
 ### 4.1 `cecat_plan_phase_started`
 
-Es dispara quan apareix un parell `(acronym, phase)` que el cicle anterior no tenia, i la fase
-no és `none`, **excepte** quan aquella alta s'aparella amb una baixa del mateix acrònim i es
-col·lapsa en un `phase_changed` (§4.2). L'aparellament demana tres condicions alhora, i si en
-falla qualsevol s'emeten els events plans: exactament una alta per a l'acrònim, exactament una
-baixa, i **les dues fases a `PHASE_ORDER`** (és a dir, cap costat no és `unknown`). La regla
-sencera és a [`04`](04-architecture.md) §5.
+Es dispara **sempre** que apareix un parell `(acronym, phase)` que el cicle anterior no tenia i
+la fase no és `none`. Sense excepcions i sense supressió: tant si la fila apareix de zero com si
+és el costat nou d'una transició, aquest event s'emet.
 
-Conseqüència que val la pena tenir present: una fila que entra en `unknown` **sí** que dispara
-`phase_started`, perquè `unknown` no és aparellable. És el que fa que una escalada que passa per
-un literal irreconeixible segueixi arribant a les automacions.
+És el carril que cobreix "avisa'm quan un pla arribi a la fase X" sense casos especials, i el que
+fa servir el blueprint (§5). Una fila que entra en `unrecognized` també el dispara.
 
 ```yaml
 event_type: cecat_plan_phase_started
@@ -300,17 +337,17 @@ data:
 
 Es dispara quan un `acronym` que ja seguíem canvia **entre dues fases conegudes**, en qualsevol
 direcció: una clau `(acronym, phase)` desapareix i una altra del **mateix acrònim** apareix al
-mateix cicle, i en lloc de dos events se n'emet un de sol.
+mateix cicle. **S'emet a més del parell `phase_ended` + `phase_started`, mai en lloc seu.**
 
-L'aparellament demana **tres** condicions alhora, i totes tres han de ser certes:
+Demana **tres** condicions alhora, i totes tres han de ser certes:
 
 1. Exactament **una alta** per a aquell acrònim.
 2. Exactament **una baixa** per a aquell acrònim.
-3. **Les dues fases són a `PHASE_ORDER`**, és a dir cap costat no és `unknown`.
+3. **Les dues fases són a `PHASE_ORDER`**, és a dir cap costat no és `unrecognized`.
 
-Si en falla qualsevol, no hi ha `phase_changed`: s'emeten un `phase_ended` per clau retirada i un
-`phase_started` per clau afegida. La regla sencera, amb el motiu de cada condició, és a
-[`04`](04-architecture.md) §5.
+Si en falla qualsevol, simplement no hi ha `phase_changed`; el parell `phase_ended` +
+`phase_started` ja s'ha emès igualment i el senyal no es perd. La regla sencera, amb el motiu de
+cada condició i els exemples treballats, és a [`04`](04-architecture.md) §5.
 
 ```yaml
 event_type: cecat_plan_phase_changed
@@ -332,7 +369,7 @@ veure el literal que ha arribat de veritat.
 
 `escalation` es calcula **només** entre dues fases que totes dues tenen posició a `PHASE_ORDER`,
 perquè la tercera condició de l'aparellament garanteix que aquest event no s'emet mai amb un
-costat `unknown`. Una transició que hi entra o en surt no arriba aquí: surt com a `phase_ended`
+costat `unrecognized`. Una transició que hi entra o en surt no arriba aquí: surt com a `phase_ended`
 + `phase_started` (§4.1 i §4.3). Comparar severitats a través d'un valor sense ordre no és una
 comparació que doni `false`, és una comparació que no s'hauria de fer
 ([`04`](04-architecture.md) §4).
@@ -345,18 +382,27 @@ comparació que doni `false`, és una comparació que no s'hauria de fer
 [`01`](01-data-sources.md) §3.2 nota 2, on cada pla d'actuació del PROCICAT reporta `PROCICAT`
 pelat a `plaacronim`, un cicle en què el pla d'actuació d'onada de calor deixa de seguir-se
 mentre el de ferrocarril apareix en `ALERTA` dona exactament una alta i una baixa per a
-`PROCICAT`, i s'emet un sol `cecat_plan_phase_changed` amb `escalation: true` que afirma una
-escalada quan de fet un pla s'ha acabat i n'ha començat un altre de diferent. És una limitació
-acceptada i inherent a la identitat declarada, amb les alternatives rebutjades documentades a
+`PROCICAT`, i s'hi **afegeix** un `cecat_plan_phase_changed` amb `escalation: true` que afirma
+una escalada quan de fet un pla s'ha acabat i n'ha començat un altre de diferent.
+
+La limitació és **només d'aquest event**: el `phase_ended(PROCICAT, prealerta)` i el
+`phase_started(PROCICAT, alerta)` del mateix cicle són **individualment correctes**, perquè un
+pla realment s'ha acabat i un altre realment ha començat. Qui fa servir el carril `phase_started`
+o el carril `phase_ended` (§6) no en pateix res. És una limitació acceptada i inherent a la
+identitat declarada, amb les alternatives rebutjades documentades a
 [`04`](04-architecture.md) §5 i llistada com a obert 6 del veredicte
 ([`01`](01-data-sources.md) §14).
 
 ### 4.3 `cecat_plan_phase_ended`
 
-Es dispara quan una clau `(acronym, phase)` que seguíem **desapareix** de la resposta i aquella
-baixa **no** s'aparella en un `phase_changed`. L'aparellament demana les tres condicions de
-§4.2: una alta, una baixa, i les dues fases a `PHASE_ORDER`. Per tant una clau que se'n va en
-`unknown`, o que se'n va cap a `unknown`, acaba **sempre** aquí i no dins d'un `phase_changed`.
+Es dispara **sempre** que una clau `(acronym, phase)` que seguíem desapareix de la resposta.
+Sense excepcions i sense supressió: tant si l'episodi s'acaba del tot com si la fase és
+intermèdia i el pla continua en una altra, aquest event s'emet.
+
+Perquè ja no se suprimeix mai, **`duration_minutes` hi és sempre**, també per a les fases
+intermèdies. Amb la supressió anterior, la durada de qualsevol fase que acabés transicionant era
+irrecuperable: aquest és el carril de "registrar la durada dels episodis" (§6) i ara és correcte
+per a totes les fases, no només per a les terminals.
 
 ```yaml
 event_type: cecat_plan_phase_ended
@@ -369,9 +415,9 @@ data:
 ```
 
 `previous_phase_raw` hi és **sempre**, per la mateixa regla de §4.2 i amb més motiu aquí: com que
-`unknown` no és aparellable, aquest event és on aterra un episodi que va acabar amb un `plafase`
+`unrecognized` no és aparellable, aquest event és on aterra un episodi que va acabar amb un `plafase`
 irreconeixible. Sense el literal cru, una automació que registri durades per fase anotaria
-`unknown` sense cap manera de distingir dos literals dolents diferents, que sota la col·lisió
+`unrecognized` sense cap manera de distingir dos literals dolents diferents, que sota la col·lisió
 residual de [`04`](04-architecture.md) §5 havien col·lapsat a la mateixa clau.
 
 ⚠️ **Aquest event és per absència, no per anunci.** El CECAT gairebé no publica comunicats de
@@ -411,27 +457,41 @@ Un sol blueprint, `blueprints/automation/cecat/plan_notification.yaml`, amb tres
 | `min_phase` | `select`: `prealerta` / `alerta` / `emergencia` | `alerta` |
 | `plans` | `select` múltiple d'acrònims coneguts, buit = tots | buit |
 
-Escolta `cecat_plan_phase_started` i `cecat_plan_phase_changed` (només amb `escalation: true`),
-filtra per `min_phase` i per `plans`, i envia el missatge amb `description` i l'enllaç al
-comunicat.
+**Escolta un sol event: `cecat_plan_phase_started`.** Filtra per `min_phase` i per `plans`, i
+envia el missatge amb `description` i l'enllaç al comunicat.
+
+Un sol carril, i n'hi ha prou. Com que `phase_started` s'emet per a **cada** fase que comença,
+tant si la fila apareix de zero com si escala des d'una altra fase (§4), la fase nova hi arriba
+sempre i el filtre `min_phase` decideix si es notifica. Afegir-hi també `phase_changed` només
+serviria per enviar **dues** notificacions per una mateixa escalada, que és exactament el cost
+que §4 adverteix. `cecat_plan_phase_changed` queda disponible per a qui vulgui semàntica
+d'**escalada estrictament**, que és la recepta corresponent de §6, però no és el que fa el
+blueprint.
 
 Per defecte `alerta` i **no** `prealerta`: amb 589 prealertes en 623 dies
 ([`01`](01-data-sources.md) §4) un blueprint que notifiqués prealertes seria soroll i faria que
 l'usuari el silenciés, perdent també les alertes.
 
-### 5.1 `phase: unknown` sempre passa el filtre, i el missatge ho ha de dir
+### 5.1 `phase: unrecognized` sempre passa el filtre, i el missatge ho ha de dir
 
 `min_phase` només ofereix `prealerta` / `alerta` / `emergencia`, però §4.1 dispara
-`phase_started` per a qualsevol fase que no sigui `none`, **inclosa `unknown`**. Un acrònim nou
+`phase_started` per a qualsevol fase que no sigui `none`, **inclosa `unrecognized`**. Un acrònim nou
 que arribi amb un `plafase` irreconeixible entra directament al filtre. Tres regles, i cap és
 opcional:
 
-1. **`unknown` sempre passa**, sigui quin sigui el `min_phase` configurat. En una integració de
+1. **`unrecognized` sempre passa**, sigui quin sigui el `min_phase` configurat. En una integració de
    protecció civil, un desconegut silenciós és pitjor que una notificació de més. És el mateix
    principi que al coordinator: un valor irreconeixible degrada de manera segura i sorollosa.
+   El preu d'aquesta regla, per tenir-lo escrit: com que `unrecognized` esquiva `min_phase` del
+   tot, si el publicador canviés el literal de fase a tota la font (un espai final, una
+   recodificació, una fase rebatejada) cada fila de prealerta normalitzaria a `unrecognized` i
+   dispararia un `phase_started` que cap valor de `min_phase` no podria filtrar, reproduint el
+   flux de soroll d'aproximadament un per dia que el valor per defecte `alerta` existeix per
+   evitar; queda diagnosticable pel `warning` una sola vegada per literal i pels
+   `unknown_phases` dels diagnostics.
 2. **Cap implementació no pot petar.** Un error de plantilla no és una tercera opció, és
    precisament la fallada que les altres dues eviten. Per això la condició ha de comprovar
-   `unknown` **primer** i sortir, i només després buscar posicions a la llista ordenada, de
+   `unrecognized` **primer** i sortir, i només després buscar posicions a la llista ordenada, de
    manera que el valor sense ordre no arribi mai a un `index()`. És el mateix motiu i la mateixa
    forma que `_severity` a [`04`](04-architecture.md) §4.
 3. **El missatge ha de dir que la fase no s'ha reconegut**, i mostrar `phase_raw`. Notificar és
@@ -442,42 +502,48 @@ Forma exacta de la condició, perquè ningú no reintrodueixi el perill:
 
 ```jinja
 {% set ordre = ['prealerta', 'alerta', 'emergencia'] %}
-{{ trigger.event.data.phase == 'unknown'
+{{ trigger.event.data.phase == 'unrecognized'
    or ordre.index(trigger.event.data.phase) >= ordre.index(min_phase) }}
 ```
 
 L'ordre dels operands importa: Jinja avalua `or` amb curtcircuit, per tant amb
-`phase == 'unknown'` la crida a `index()` no s'executa mai. Escriure-ho al revés tornaria a
+`phase == 'unrecognized'` la crida a `index()` no s'executa mai. Escriure-ho al revés tornaria a
 donar l'error de plantilla.
 
 I el missatge, quan la fase no es reconeix:
 
 ```jinja
-{% if trigger.event.data.phase == 'unknown' %}
+{% if trigger.event.data.phase == 'unrecognized' %}
   {{ acronym }}: fase NO RECONEGUDA ("{{ trigger.event.data.phase_raw }}")
 {% endif %}
 ```
 
-⚠️ **Fals positiu conegut d'aquest blueprint.** Com que filtra per `escalation: true`, hereta la
-limitació de §4.2: si dos plans d'actuació distints comparteixen `plaacronim` (el cas del
-PROCICAT), un cicle en què un acaba i un altre comença es veu com una escalada i el blueprint
-enviarà una notificació d'escalada per un episodi que no ha escalat. No es corregeix perquè
-corregir-ho requeriria corroborar la identitat amb `plaicona` o `descripcio`, dos camps que
-aquesta mateixa recerca ha trobat poc fiables ([`01`](01-data-sources.md) §6.3 i §9). Obert 6
-del veredicte.
+⚠️ **El fals positiu de l'obert 6 no afecta aquest blueprint.** Com que escolta `phase_started` i
+no `escalation: true`, la confusió de §4.2 entre dos plans d'actuació que comparteixen
+`plaacronim` no hi arriba: el que rep és un `phase_started(PROCICAT, alerta)` que és cert, perquè
+un pla d'actuació realment ha començat en alerta. Qui sí que hereta la limitació és la recepta
+"notificar només escalades" de §6, que filtra per `escalation: true` deliberadament. No es
+corregeix perquè corregir-ho requeriria corroborar la identitat amb `plaicona` o `descripcio`,
+dos camps que aquesta mateixa recerca ha trobat poc fiables ([`01`](01-data-sources.md) §6.3 i
+§9). Obert 6 del veredicte.
 
 ---
 
 ## 6. Patrons d'automació que suportem
 
-| Vull… | Com |
-| --- | --- |
-| Avisar-me quan s'activi qualsevol pla | Trigger d'estat sobre `binary_sensor.proteccio_civil_catalunya_pla_activat` a `on`, o el blueprint. **No** l'event `phase_started`, que també salta amb una prealerta |
-| Avisar-me només d'emergències | Trigger d'event `cecat_plan_phase_started` amb condició `phase == emergencia` |
-| Saber si l'INUNCAT concretament està en alerta | Template sobre l'atribut `plans` de `sensor.proteccio_civil_catalunya_plans`. Vegeu el README |
-| Creuar amb el Meteocat: avís greu **i** INUNCAT en alerta | Condició que creua `ha-avisoscat` i `ha-cecat`. Dues integracions a la mateixa instància, cap acoblament ([`02`](02-existing-integrations.md) §3) |
-| Registrar la durada dels episodis | Escoltar `cecat_plan_phase_ended` i llegir `duration_minutes` |
-| Notificar només escalades | Trigger d'event `cecat_plan_phase_changed` amb condició `escalation == true`, o el blueprint. **Amb el fals positiu de §4.2**: per a `PROCICAT`, dos plans d'actuació distints poden semblar una escalada d'un de sol |
+**Cada recepta declara un sol carril**, i els carrils **no s'han de combinar** tret que es vulgui
+expressament la notificació doble que adverteix §4: qui escolti `phase_started` i `phase_changed`
+alhora rebrà dos avisos per una sola transició.
+
+| Vull… | Carril | Com |
+| --- | --- | --- |
+| Avisar-me quan s'activi qualsevol pla | (estat, no event) | Trigger d'estat sobre `binary_sensor.proteccio_civil_catalunya_pla_activat` a `on`, o el blueprint. **No** l'event `phase_started`, que també salta amb una prealerta |
+| Avisar-me quan un pla arribi a una fase concreta | `phase_started` | Trigger d'event `cecat_plan_phase_started` amb condició sobre `phase`. Correcte tant si la fila apareix de zero com si hi escala des d'una altra fase |
+| Avisar-me només d'emergències | `phase_started` | Trigger d'event `cecat_plan_phase_started` amb condició `phase == emergencia`. Cobreix l'escalada `alerta → emergencia`, que és com va passar l'única transició observada a la font (`I-125912`, [`01`](01-data-sources.md) §7.2) |
+| Saber si l'INUNCAT concretament està en alerta | (atribut, no event) | Template sobre l'atribut `plans` de `sensor.proteccio_civil_catalunya_plans`. Vegeu el README |
+| Creuar amb el Meteocat: avís greu **i** INUNCAT en alerta | (condició, no event) | Condició que creua `ha-avisoscat` i `ha-cecat`. Dues integracions a la mateixa instància, cap acoblament ([`02`](02-existing-integrations.md) §3) |
+| Registrar la durada dels episodis | `phase_ended` | Escoltar `cecat_plan_phase_ended` i llegir `duration_minutes`. Correcte per a **totes** les fases, també les intermèdies d'un episodi, perquè aquest event ja no se suprimeix mai (§4.3) |
+| Notificar només escalades | `phase_changed` | Trigger d'event `cecat_plan_phase_changed` amb condició `escalation == true`. **Amb el fals positiu de §4.2**: per a `PROCICAT`, dos plans d'actuació distints poden semblar una escalada d'un de sol. És l'únic carril que hereta l'obert 6 |
 
 Exemple del cas per pla concret, que va al README:
 
@@ -521,19 +587,21 @@ condition:
 | 4b | Amb dues files del **mateix acrònim** en fases diferents (p. ex. PROCICAT en prealerta i PROCICAT en alerta): `plans = 2`, **les dues** a l'atribut `plans` ordenades per `(acronym, phase)`, i **dos** `cecat_plan_phase_started`. Cap de les dues es perd |
 | 5 | Amb un fixture sintètic d'`EMERGÈNCIA` (marcat com a sintètic): `max_phase = emergencia`. També amb `EMERGENCIA` sense accent |
 | 5b | Amb `emergencia_plaactivat_rar_SYNTHETIC` (tres files d'`EMERGÈNCIA`, `plaactivat` = `Si`, ` SI ` i **el camp absent**, amb acrònims distints perquè no col·lapsin): `plan_activated = on`. ⚠️ Criteri **agregat**: el satisfaria qualsevol de les tres files essent certa, per tant **no** és cobertura de les tres variants, només comprova que l'agregació no perdi el senyal. La cobertura per variant viu als criteris per fila de `resolve_activated` a T3 de [`05`](05-implementation-plan.md). El camp absent genera un `warning` una sola vegada, registrat com a `<absent>`; `Si` i ` SI ` es reconeixen i no en generen cap. Amb `plaactivat = NO` sobre una prealerta: `off` |
-| 6 | `plafase` amb un literal desconegut: `max_phase = unknown`, `warning` una sola vegada, cap excepció |
-| 6b | Estat previ `{(INUNCAT, alerta)}` i el cicle següent l'`INUNCAT` arriba amb un `plafase` irreconeixible: hi ha una alta i una baixa, però un costat és `unknown`, per tant **no s'aparella**. S'emeten **un `cecat_plan_phase_ended`** (`previous_phase = alerta`, `previous_phase_raw = ALERTA`) **i un `cecat_plan_phase_started`** (`phase = unknown`, `phase_raw` amb el literal cru), i **cap `cecat_plan_phase_changed`**. Cap excepció avorta el cicle |
-| 6c | Continuant des de 6b, el cicle següent la fila arriba com a `EMERGÈNCIA`: **un `cecat_plan_phase_ended`** (`previous_phase = unknown`, `previous_phase_raw` amb el literal cru) **i un `cecat_plan_phase_started`** (`phase = emergencia`), i **cap `phase_changed`**. El blueprint, que escolta `phase_started`, **notifica l'escalada** sense cap canvi al blueprint |
+| 6 | `plafase` amb un literal desconegut: `max_phase = unrecognized`, `warning` una sola vegada, cap excepció |
+| 6a | L'estat de `max_phase` **mai no és la cadena reservada `unknown`**, llegit de la màquina d'estats de Home Assistant, ni per a un `plafase` irreconeixible ni en cap altre cas. Amb `[]` és `none`; `unavailable` només arriba pel guard de dades velles (§3.1) |
+| 6b | Estat previ `{(INUNCAT, alerta)}` i el cicle següent l'`INUNCAT` arriba amb un `plafase` irreconeixible: s'emeten **un `cecat_plan_phase_ended`** (`previous_phase = alerta`, `previous_phase_raw = ALERTA`, amb `duration_minutes`) **i un `cecat_plan_phase_started`** (`phase = unrecognized`, `phase_raw` amb el literal cru). **Cap `cecat_plan_phase_changed`**, perquè un costat no és a `PHASE_ORDER`. Cap excepció avorta el cicle |
+| 6c | Continuant des de 6b, el cicle següent la fila arriba com a `EMERGÈNCIA`: **un `cecat_plan_phase_ended`** (`previous_phase = unrecognized`, `previous_phase_raw` amb el literal cru) **i un `cecat_plan_phase_started`** (`phase = emergencia`), i **cap `phase_changed`**. El blueprint, que escolta `phase_started`, **notifica l'escalada** sense cap canvi al blueprint |
 | 7 | `plaacronim` desconegut (`PENTA`, `NOPLA`): fila ingerida, `name` = l'acrònim, `warning` una vegada |
 | 8 | `comunicatpdf` absent, `plaicona` absent, `descripcio` buida: cap `KeyError`, atributs a `None` |
 | 9 | `comunicatpdf.url` amb accents i apòstrof (captura 2026-07-03): es propaga tal qual sense petar ni recodificar |
 | 10 | `fasedatahora` il·legible o absent i sense `:created_at`: `started_at = None`, `started_at_source = null`, cap excepció |
-| 11 | Transició prealerta → alerta del mateix acrònim: **un** `cecat_plan_phase_changed` amb `escalation: true`, i **cap** `cecat_plan_phase_started` ni `cecat_plan_phase_ended` |
+| 11 | Transició prealerta → alerta del mateix acrònim: **tres** events, no un. `cecat_plan_phase_ended` (`previous_phase = prealerta`, `previous_phase_raw`, **amb `duration_minutes` calculat**), `cecat_plan_phase_started` (`phase = alerta`) i `cecat_plan_phase_changed` amb `escalation: true`. Cap dels tres no en suprimeix cap altre |
+| 11b | La mateixa transició, però cap a `emergencia`: el `cecat_plan_phase_started` **s'emet igualment**, per tant una automació que escolti només `phase_started` amb `phase == emergencia` es dispara. És la regressió que la supressió causava |
 | 12 | `comunicatpdf` canvia sense canviar `plafase`: **cap** event. Només canvia l'atribut |
 | 13 | Fila que desapareix en un cicle **vàlid**: un `cecat_plan_phase_ended` amb `duration_minutes` |
 | 14 | Fila que desapareix perquè la petició **falla**: cap event, estat anterior intacte |
 | 15 | HTTP 304 a `If-Modified-Since`: estat anterior intacte, cap event, cap entitat a `unavailable` |
-| 15b | Blueprint: un event amb `phase: unknown` **passa** el filtre amb `min_phase` a `prealerta`, a `alerta` i a `emergencia`, sense cap error de plantilla, i el missatge diu que la fase **no s'ha reconegut** i mostra `phase_raw` (§5.1) |
+| 15b | Blueprint: un event amb `phase: unrecognized` **passa** el filtre amb `min_phase` a `prealerta`, a `alerta` i a `emergencia`, sense cap error de plantilla, i el missatge diu que la fase **no s'ha reconegut** i mostra `phase_raw` (§5.1) |
 | 16 | Config flow: `[]` a la petició de prova crea l'entrada; timeout dona `cannot_connect` |
 | 17 | Les quatre entitats tenen clau als tres `translations/{ca,es,en}.json` i `hassfest` passa |
 | 18 | Cobertura ≥ 95%, `ruff check` i `ruff format --check` en verd |

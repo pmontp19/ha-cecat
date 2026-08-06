@@ -79,7 +79,7 @@ de la taula del §9 de [`04`](04-architecture.md), i escriure els **cinc** fixtu
 ### T3: Models i normalització
 
 **Descripció.** `models.py` del §4 de [`04`](04-architecture.md): enum `Phase`, `PHASE_ORDER`
-(sense `UNKNOWN`), `normalise_phase()` amb `casefold()` i sense diacrítics,
+(sense `UNRECOGNIZED`), `normalise_phase()` amb `casefold()` i sense diacrítics,
 `resolve_activated()` amb la mateixa normalització i fallback a la fase,
 `resolve_started_at()` amb `:created_at` primer i `fasedatahora` de reserva,
 `PlanActivation.from_row()` tolerant, `PLAN_NAMES` des del registre oficial, `CecatState`. Cap
@@ -96,9 +96,8 @@ import de Home Assistant.
 - [ ] `emergencia_plaactivat_rar_SYNTHETIC` → les **tres** files donen `activated = True`, assertat **fila a fila** i no amb l'agregat de T7. Les tres claus `(acronym, phase)` són distintes perquè els acrònims ho són
 - [ ] Els mateixos valors irreconeixibles sobre una fila de `PREALERTA` → `activated = False` (mana la fase, AD-6)
 - [ ] `plaactivat` irreconeixible **i** `plafase` irreconeixible → `activated = False`, cap excepció, els dos literals conservats
-- [ ] `_severity(Phase.UNKNOWN)` retorna `-1` i **no llança**; `_severity` de les quatre fases de `PHASE_ORDER` retorna la seva posició
-- [ ] `_severity` és l'única funció de severitat: **no** hi ha cap helper d'escalada que accepti fases fora de `PHASE_ORDER`, perquè la comparació ja no s'hi arriba a fer (§4 i §5 de [`04`](04-architecture.md)). L'escalada es calcula amb `_severity(new) > _severity(old)` dins de la branca d'aparellament, que garanteix que totes dues fases són ordenables
-- [ ] Fase desconeguda → `Phase.UNKNOWN`, i `phase_raw` conserva el literal
+- [ ] `_severity(Phase.UNRECOGNIZED)` retorna `-1` i **no llança**; `_severity` de les quatre fases de `PHASE_ORDER` retorna la seva posició
+- [ ] Fase desconeguda → `Phase.UNRECOGNIZED`, i `phase_raw` conserva el literal
 - [ ] `plaacronim` desconegut (`PENTA`, `NOPLA`) → fila vàlida amb `name` = l'acrònim
 - [ ] `comunicatpdf`/`plaicona` absents o no-`dict` → `None`, sense excepció
 - [ ] Sense `:created_at` i amb `fasedatahora = "16/01/2026 19:54"` → `2026-01-16T18:54:00+00:00` (CET, UTC+1) i `started_at_source = "fasedatahora"`
@@ -179,10 +178,11 @@ dades velles.
 - [ ] `dos_plans_2026_01_19` → `plans = 2`, atribut `plans` **ordenat per `(acronym, phase)`** (INUNCAT abans que NEUCAT)
 - [ ] `dos_procicat_SYNTHETIC` (mateix acrònim, fases diferents) → `plans = **2**`, **les dues** files a l'atribut `plans`, en ordre determinista per `(acronym, phase)`. És el criteri que falla si l'estat s'indexa per l'acrònim sol
 - [ ] `emergencia_SYNTHETIC` → `max_phase = "emergencia"`
-- [ ] `fase_desconeguda_SYNTHETIC` → `max_phase = "unknown"` i `phase_raw` visible a `plans`
+- [ ] `fase_desconeguda_SYNTHETIC` → `max_phase = "unrecognized"` i `phase_raw` visible a `plans`
 - [ ] Una fila desconeguda i una `ALERTA` alhora → `max_phase = "alerta"` (la desconeguda no guanya)
 - [ ] `last_updated` parseja el `Last-Modified` a `datetime` amb tz; `None` si falta la capçalera
-- [ ] `options` de `max_phase` inclou `"unknown"`; `entity_category` de `last_updated` és `DIAGNOSTIC`
+- [ ] `options` de `max_phase` inclou `"unrecognized"`; `entity_category` de `last_updated` és `DIAGNOSTIC`
+- [ ] L'estat de `max_phase` llegit de la màquina d'estats **mai no és la cadena reservada `"unknown"`**, en cap dels fixtures, ni tan sols amb `fase_desconeguda_SYNTHETIC` (criteri 6a de [`03`](03-feature-spec.md))
 
 **Verificació.** `pytest tests/test_sensor.py` verd.
 **Dependències.** T5. **Mida.** M
@@ -197,7 +197,7 @@ dades velles.
 - [ ] `buit` → `off`
 - [ ] `emergencia_SYNTHETIC` → `on`
 - [ ] `emergencia_plaactivat_rar_SYNTHETIC` → **`on`**. ⚠️ Aquest criteri és **agregat**: el satisfaria qualsevol de les tres files essent certa, per tant **no** és la cobertura de les tres variants. Aquesta viu als criteris per fila de T3, i aquí només es comprova que l'agregació no perdi el senyal (§3.3 de [`03`](03-feature-spec.md), criteri 5b)
-- [ ] Cap comparació literal `== "SI"` al mòdul: `is_on` llegeix `activated`, que ja ve normalitzat de `models.py`
+- [ ] Una fila d'`EMERGÈNCIA` amb `plaactivat` = `Si`, amb ` SI `, o **amb el camp absent** dona `on` en els tres casos, comprovat carregant cada variant per separat. És la conducta que una comparació literal `== "SI"` trencaria
 
 **Verificació.** `pytest tests/test_binary_sensor.py` verd. El segon criteri és la prova que la
 prealerta es modela com a estat de primera classe i no com a "no activat"; el cinquè és la
@@ -208,21 +208,24 @@ prova que la tolerància de la trap 14 arriba també a `plaactivat` i no només 
 
 **Descripció.** `_emit_events()` al coordinator: `cecat_plan_phase_started`,
 `cecat_plan_phase_changed`, `cecat_plan_phase_ended`, `cecat_service_degraded`. Diferència de
-claus `(acronym, phase)` més la regla d'aparellament del §5 de [`04`](04-architecture.md).
+claus `(acronym, phase)`: `phase_started` i `phase_ended` sempre, i `phase_changed` **additiu**
+segons la regla de tres condicions del §5 de [`04`](04-architecture.md).
 
 **Criteris d'acceptació.**
 - [ ] Els noms d'event són `cecat_plan_phase_started` / `_changed` / `_ended`. **Cap event no es diu `activated`**: aquest nom és exclusiu del binary sensor, que té la condició de veritat contrària per a la prealerta (§4 de [`03`](03-feature-spec.md))
 - [ ] `{}` → `{(INUNCAT, alerta)}` dispara **un** `cecat_plan_phase_started` amb els 8 camps del §4.1 de [`03`](03-feature-spec.md)
-- [ ] `{(INUNCAT, prealerta)}` → `{(INUNCAT, alerta)}` dispara **un** `cecat_plan_phase_changed` amb `escalation: true` i **cap** `phase_started` ni `phase_ended`
-- [ ] `{(INUNCAT, alerta)}` → `{(INUNCAT, prealerta)}` dispara `cecat_plan_phase_changed` amb `escalation: false`
+- [ ] `{(INUNCAT, prealerta)}` → `{(INUNCAT, alerta)}` dispara **tres** events: `phase_ended` (`previous_phase = prealerta`, amb `duration_minutes`), `phase_started` (`phase = alerta`) i `phase_changed` amb `escalation: true`. **Cap event no en suprimeix cap altre** (criteri 11 de [`03`](03-feature-spec.md))
+- [ ] La mateixa transició cap a `emergencia` emet igualment el `phase_started`, per tant un listener de `phase_started` amb `phase == emergencia` es dispara. És la regressió que la supressió causava (criteri 11b)
+- [ ] `{(INUNCAT, alerta)}` → `{(INUNCAT, prealerta)}` dispara els tres events igualment, amb `escalation: false` al `phase_changed`
 - [ ] `{}` → `{(PROCICAT, prealerta), (PROCICAT, alerta)}` dispara **dos** `cecat_plan_phase_started`, un per fase. Cap dels dos es perd i no es col·lapsen
 - [ ] Cas ambigu: `{(PROCICAT, prealerta), (PROCICAT, alerta)}` → `{(PROCICAT, emergencia)}` dispara **dos** `phase_ended` i **un** `phase_started`, i **cap** `phase_changed`. No s'aparella res quan hi ha més d'una alta o més d'una baixa per acrònim
-- [ ] L'aparellament demana **tres** condicions: una alta per a l'acrònim, una baixa, **i les dues fases a `PHASE_ORDER`**. Un test comprova que amb un costat `unknown` **no** s'emet cap `phase_changed`
-- [ ] `{(INUNCAT, alerta)}` → el mateix acrònim amb un `plafase` **irreconeixible** dispara **un** `cecat_plan_phase_ended` (`previous_phase_raw = ALERTA`) **i un** `cecat_plan_phase_started` (`phase = unknown`, `phase_raw` amb el literal cru), **cap** `phase_changed`, i cap excepció (criteri 6b de [`03`](03-feature-spec.md))
-- [ ] **Exemple treballat de dos cicles**, seguint el criteri 6c de [`03`](03-feature-spec.md): partint de l'estat anterior, la fila arriba com a `EMERGÈNCIA` i dispara un `phase_ended` (`previous_phase = unknown`, `previous_phase_raw` amb el literal cru) i un `phase_started` (`phase = emergencia`), **cap** `phase_changed`. És el camí que fa que l'escalada a la fase més greu arribi al blueprint sense tocar-lo
+- [ ] `phase_changed` és **additiu** i demana **tres** condicions: una alta per a l'acrònim, una baixa, **i les dues fases a `PHASE_ORDER`**. Un test comprova que amb un costat `unrecognized` **no** s'emet cap `phase_changed`, i que el parell `phase_ended` + `phase_started` s'emet igualment
+- [ ] `{(INUNCAT, alerta)}` → el mateix acrònim amb un `plafase` **irreconeixible** dispara **un** `cecat_plan_phase_ended` (`previous_phase_raw = ALERTA`, amb `duration_minutes`) **i un** `cecat_plan_phase_started` (`phase = unrecognized`, `phase_raw` amb el literal cru), **cap** `phase_changed`, i cap excepció (criteri 6b de [`03`](03-feature-spec.md))
+- [ ] **Exemple treballat de dos cicles**, seguint el criteri 6c de [`03`](03-feature-spec.md): partint de l'estat anterior, la fila arriba com a `EMERGÈNCIA` i dispara un `phase_ended` (`previous_phase = unrecognized`, `previous_phase_raw` amb el literal cru) i un `phase_started` (`phase = emergencia`), **cap** `phase_changed`. És el camí que fa que l'escalada a la fase més greu arribi al blueprint sense tocar-lo
 - [ ] `_severity` no rep mai una fase fora de `PHASE_ORDER` des de la branca d'aparellament: un test amb un doble o una asserció ho comprova
 - [ ] Tot `phase_changed` porta `phase_raw` i `previous_phase_raw`, i tot `phase_ended` porta `previous_phase_raw`, també quan les fases són reconegudes
 - [ ] `{(INUNCAT, alerta)}` → `{}` en un cicle **vàlid** dispara `cecat_plan_phase_ended` amb `duration_minutes` calculat
+- [ ] `duration_minutes` hi és **també per a una fase intermèdia**: a la transició `prealerta → alerta`, el `phase_ended` de la prealerta el porta. Amb la supressió era irrecuperable
 - [ ] `{(INUNCAT, alerta)}` → cicle **fallit** dispara **cap** event
 - [ ] Només canvia `comunicatpdf` (mateix acrònim, mateixa fase) → **cap** event
 - [ ] 3 fallides consecutives → `cecat_service_degraded` amb `recovered: false`; el cicle bo següent, un amb `recovered: true`
@@ -289,7 +292,7 @@ llengua de referència. `brand/icon.png` i `icon@2x.png`.
 - [ ] Les 4 entitats i tots els camps del config flow tenen clau als **tres** idiomes
 - [ ] Els 5 valors de `max_phase` tenen etiqueta traduïda als tres idiomes
 - [ ] `hassfest` passa
-- [ ] `icons.json` assigna icones `mdi:` fixes. **Cap referència a `plaicona`** (§11.3 de [`01`](01-data-sources.md))
+- [ ] `icons.json`, **parsejat com a JSON i no grepat**, assigna a cada entitat una icona `mdi:` fixa i cap valor no prové de `plaicona` (§11.3 de [`01`](01-data-sources.md))
 - [ ] `test_translations.py` compara les claus dels tres fitxers i falla si divergeixen
 
 **Verificació.** `validate.yml` verd + `pytest tests/test_translations.py`.
@@ -303,11 +306,11 @@ llengua de referència. `brand/icon.png` i `icon@2x.png`.
 **Criteris d'acceptació.**
 - [ ] `min_phase` per defecte és **`alerta`**, no `prealerta` (589 prealertes en 623 dies)
 - [ ] El filtre per `plans` buit vol dir "tots"
-- [ ] Escolta `cecat_plan_phase_started` i `cecat_plan_phase_changed` amb `escalation: true`
-- [ ] La descripció del blueprint documenta el fals positiu conegut del filtre `escalation: true` (§5 de [`03`](03-feature-spec.md), obert 6): amb dos PA distints sota el mateix `plaacronim` pot notificar una escalada que no ha passat
-- [ ] **`phase: unknown` passa el filtre amb els tres valors de `min_phase`** (`prealerta`, `alerta`, `emergencia`), sense excepció (§5.1 de [`03`](03-feature-spec.md), criteri 15b)
-- [ ] **Cap error de plantilla amb cap valor de `phase`**, `unknown` inclòs: un test renderitza la condició amb les cinc fases × els tres `min_phase` i cap combinació peta. La condició comprova `unknown` abans de qualsevol `index()`, i el curtcircuit de l'`or` és el que ho garanteix
-- [ ] El missatge renderitzat per a `phase: unknown` **diu que la fase no s'ha reconegut i mostra `phase_raw`**, en lloc de presentar `unknown` com si fos una fase coneguda
+- [ ] **Escolta un sol event, `cecat_plan_phase_started`**, i **no** té cap trigger de `phase_changed`. Un test comprova que una transició `alerta → emergencia` produeix **una sola** notificació, no dues (§5 de [`03`](03-feature-spec.md))
+- [ ] La descripció del blueprint documenta que escolta només `phase_started` i que `cecat_plan_phase_changed` queda per a qui vulgui semàntica d'escalada estrictament, amb el fals positiu de l'obert 6 que aquell carril hereta (§5 i §6 de [`03`](03-feature-spec.md))
+- [ ] **`phase: unrecognized` passa el filtre amb els tres valors de `min_phase`** (`prealerta`, `alerta`, `emergencia`), sense excepció (§5.1 de [`03`](03-feature-spec.md), criteri 15b)
+- [ ] **Cap error de plantilla amb cap valor de `phase`**, `unrecognized` inclòs: un test renderitza la condició amb **les quatre fases que un event pot portar** (`prealerta`, `alerta`, `emergencia`, `unrecognized`) × els tres `min_phase`, i cap de les dotze combinacions peta. `none` no hi entra perquè cap payload d'event no el pot portar: `normalise_phase` no retorna mai `Phase.NONE` i `none` només existeix com a estat agregat de `max_phase`. La condició comprova `unrecognized` abans de qualsevol `index()`, i el curtcircuit de l'`or` és el que ho garanteix
+- [ ] El missatge renderitzat per a `phase: unrecognized` **diu que la fase no s'ha reconegut i mostra `phase_raw`**, en lloc de presentar `unrecognized` com si fos una fase coneguda
 - [ ] `test_blueprint.py` valida l'esquema del YAML
 
 **Verificació.** `pytest tests/test_blueprint.py` verd + importació manual a una instància real.
@@ -336,7 +339,7 @@ repositori personalitzat.
 
 ### Checkpoint final: v1
 
-- [ ] Tots els criteris d'acceptació del §8 de [`03-feature-spec.md`](03-feature-spec.md) marcats: els 18 numerats més 3b, 4b, 5b i 6b
+- [ ] Tots els criteris d'acceptació del §8 de [`03-feature-spec.md`](03-feature-spec.md) marcats: els 18 numerats més 3b, 4b, 5b, 6a, 6b, 6c, 11b i 15b
 - [ ] CI completa verda: `ruff check`, `ruff format --check`, `pytest --cov-fail-under=95`, `hassfest`, `hacs/action`
 - [ ] Soak de 48 h en una instància real sense cap `ERROR` al log ni entitat encallada a `unavailable`
 - [ ] Almenys **un** canvi real observat durant el soak (activació, canvi de fase o desactivació) amb l'event corresponent al bus

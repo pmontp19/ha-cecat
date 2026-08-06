@@ -78,10 +78,13 @@ aquest recompte ha de deixar de quadrar i s'ha d'actualitzar.
    al feed. (Obert 1.)
 3. **Si un canvi de fase substitueix la fila o l'edita.** Només s'ha observat una transició.
    Decideix si `:created_at` és fiable com a inici de fase. (Obert 3.)
-4. **El blueprint pot notificar una escalada que no ha passat.** Si dos plans d'actuació distints
-   comparteixen `plaacronim`, cosa que l'obert 1 fa plausible per al PROCICAT, un cicle en què un
-   acaba i un altre comença es veu com una escalada d'un sol pla. És una limitació acceptada, amb
-   les alternatives rebutjades documentades. (Obert 6.)
+4. **Una automació que filtri per escalades pot veure'n una que no ha passat.** Si dos plans
+   d'actuació distints comparteixen `plaacronim`, cosa que l'obert 1 fa plausible per al
+   PROCICAT, un cicle en què un acaba i un altre comença genera un event de canvi de fase que
+   sembla una escalada d'un sol pla. **El blueprint inclòs no se'n veu afectat**, perquè escolta
+   l'event de fase iniciada i no el de canvi; només ho pateix qui construeixi una automació
+   pròpia filtrant per escalades. És una limitació acceptada, amb les alternatives rebutjades
+   documentades. (Obert 6.)
 
 I tres limitacions que **no** es resoldran perquè són de la font, no de la recerca:
 

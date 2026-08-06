@@ -20,6 +20,7 @@ a `tests/fixtures/` amb el sufix `_SYNTHETIC`, mai aquí.
 | `analisi-cadencia-comunicats-2026-08-06.txt` | Sortida de l'anàlisi del llistat anterior | 2026-08-06 | Les xifres de §7.3 i §8: 1,84 comunicats/dia, p05 de 14 min, i els 1.146 punts que demostren el fus Europe/Madrid |
 | `registre-plans-generalitat-2026-08-06.json` | `xqqe-tgav` amb `ambit='Generalitat'`, 17 files | 2026-08-06 | El vocabulari autoritatiu de plans de nivell Generalitat |
 | `wfei-fjk5-activacions-2017-2022.json` | `wfei-fjk5` sencer, 102 files | 2026-08-06 | Acrònims amb la seva tipologia i el volum d'activacions 2017-2022 |
+| `cdx-wj9c-j6vf-2026-08-06.txt` | Índex CDX de la Wayback Machine per a l'endpoint, resposta crua de 26 línies | 2026-08-06 | Que l'índex té **26 entrades** i el seu desglossament per data (2 + 21 + 1 + 2), que és d'on surten les observacions arxivades de §4, §7.1 i §13 de [`../01-data-sources.md`](../01-data-sources.md) |
 
 ## Sobre el subconjunt de `wj9c-j6vf-metadata-2026-08-06.json`
 
