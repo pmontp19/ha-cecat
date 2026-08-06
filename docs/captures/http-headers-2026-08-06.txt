@@ -1,4 +1,4 @@
-# Capçaleres HTTP i GET condicional — https://analisi.transparenciacatalunya.cat/resource/wj9c-j6vf.json
+# Capçaleres HTTP i GET condicional: https://analisi.transparenciacatalunya.cat/resource/wj9c-j6vf.json
 # Capturat 2026-08-06 ~11:49 UTC
 
 ## GET (Accept-Encoding: gzip)

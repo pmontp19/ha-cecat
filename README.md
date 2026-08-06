@@ -10,6 +10,11 @@ Catalunya** (CECAT): INUNCAT, VENTCAT, NEUCAT, PROCICAT, SISMICAT, TRANSCAT i la
 Un avís del Meteocat diu què preveu el meteoròleg; això diu si Protecció Civil ha activat
 realment un pla, i en quina fase.
 
+Els noms segueixen una regla: la família d'events parla de **fases** que comencen, canvien i
+acaben (`cecat_plan_phase_started` / `_changed` / `_ended`), i el `binary_sensor` és l'únic que
+parla d'**activació**. No és el mateix: una prealerta és una fase que comença, però la font diu
+explícitament que "la prealerta no implica l'activació del pla".
+
 ## Veredicte de la recerca
 
 **Sí, hi ha prou font per construir una integració útil, i és petita.** Les quatre preguntes que
@@ -30,8 +35,8 @@ matisos a [`docs/01-data-sources.md` §14](docs/01-data-sources.md#14-veredicte)
 | Domini de Home Assistant | `cecat` |
 | Distribució | HACS (repositori personalitzat, de moment) |
 | Font | [Dades obertes de la Generalitat](https://analisi.transparenciacatalunya.cat/d/wj9c-j6vf), sense clau ni quota |
-| Entitats previstes | 4 (3 + 1 de diagnòstic) |
-| Events previstos | 4 |
+| Entitats previstes | 4 (3 + 1 de diagnòstic): `sensor.cecat_max_phase`, `sensor.cecat_plans`, `binary_sensor.cecat_plan_activated`, `sensor.cecat_last_updated` |
+| Events previstos | 4: `cecat_plan_phase_started`, `cecat_plan_phase_changed`, `cecat_plan_phase_ended`, `cecat_service_degraded` |
 | Dependències de PyPI | cap (`requirements: []`) |
 
 ## Documentació de disseny

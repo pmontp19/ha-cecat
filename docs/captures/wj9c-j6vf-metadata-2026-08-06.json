@@ -20,10 +20,13 @@
     "ods13_acció pel clima"
   ],
   "provenance": "official",
+  "newBackend": true,
   "createdAt": 1720421179,
   "publicationDate": 1720769761,
   "rowsUpdatedAt": 1786008017,
   "viewLastModified": 1758535585,
+  "viewCount": 22462,
+  "downloadCount": 677,
   "metadata": {
     "custom_fields": {
       "Freqüència d'actualització": {

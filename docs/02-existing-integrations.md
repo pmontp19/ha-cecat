@@ -207,7 +207,7 @@ Coses que **evitem**:
 
 | Què fa | Per què no ho fem |
 | --- | --- |
-| `plan = row.get("plaacronim") or row.get("planom") or "Proteccio Civil"` | El fallback a `planom` no compra res: és **idèntic** a `plaacronim` a 5/5 captures ([`01`](01-data-sources.md) trap 4) |
+| `plan = row.get("plaacronim") or row.get("planom") or "Proteccio Civil"` | El fallback a `planom` no compra res: és **idèntic** a `plaacronim` a 5/5 files observades ([`01`](01-data-sources.md) trap 4) |
 | `deduplication_hash` calculat sobre **tota** la fila (inclou `comunicatpdf` i `descripcio`) | `comunicatpdf` canvia dins de la mateixa fase ([`01`](01-data-sources.md) trap 11): cada actualització del PDF compta com a avís nou. Nosaltres identifiquem per **`(plaacronim, plafase)`** |
 | `"area_bbox": "0.15,40.5,3.35,42.9"` fixa per a tot Catalunya | És honest per al seu model de dades, però és un bbox inventat. Nosaltres no exposem geometria: no en tenim |
 | `plaactivat` només com a text al cos de l'avís (`f"Pla activat: {active}"`) | És el camp que distingeix prealerta d'activació. Ha de ser estructural, no prosa |

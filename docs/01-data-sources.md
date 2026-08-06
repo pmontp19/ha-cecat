@@ -71,24 +71,31 @@ ETag: "YnJhdm8u…---gzipFV3yYjLqxnXzyd1M5Hh_3x-37Eg--gzip--gzip"
 ## 2. Esquema de camps
 
 Totes les descripcions són literals de la metadata oficial (📄). La columna "Observat" recull
-els valors reals de les cinc captures de [`captures/`](captures/).
+els valors reals de les **cinc files** observades a [`captures/`](captures/) (2024-12-02,
+2026-01-19 ×2, 2026-07-03 i 2026-08-06; la captura de camps de sistema és una segona
+projecció d'aquesta última, no una sisena fila).
 
 | Camp | Tipus SODA | Descripció oficial | Observat |
 | --- | --- | --- | --- |
 | `plaicona` | `url` | "Icona representativa del pla (URL a icona corresponent de DocumentsOberts)" | Objecte `{"url": "…/cecat/docs/ico_INUNCAT.png"}`. **El nom del fitxer no es deriva de l'acrònim** (§6.3) |
-| `plaacronim` ⭐ | `text` | "Acrònim Pla (ex: PLASEQTA)" | `INUNCAT`, `NEUCAT`, `INFOCAT`, `PROCICAT`. **La clau natural** |
-| `planom` | `text` | "Nom complet del Pla (ex: Pla especial d'emergència exterior del sector químic de Tarragona)" | **Sempre idèntic a `plaacronim`** a les 5 captures (2024-12-02, 2026-01-19 ×2, 2026-07-03, 2026-08-06). La descripció oficial no es compleix |
+| `plaacronim` ⭐ | `text` | "Acrònim Pla (ex: PLASEQTA)" | `INUNCAT`, `NEUCAT`, `INFOCAT`, `PROCICAT`. Part de la clau natural, juntament amb `plafase` |
+| `planom` | `text` | "Nom complet del Pla (ex: Pla especial d'emergència exterior del sector químic de Tarragona)" | **Sempre idèntic a `plaacronim`** a les 5 files observades. La descripció oficial no es compleix |
 | `plafase` ⭐ | `text` | "Fase actual del Pla" | `PREALERTA`, `ALERTA`. `EMERGÈNCIA` documentat però no observat |
-| `plaactivat` ⭐ | `text` | "Indica si el Pla està activat o no. (Si/No)" | `SI` amb `ALERTA`; **`NO` amb `PREALERTA`** 🗄️. Majúscules, no `Si`/`No` |
+| `plaactivat` ⭐ | `text` | "Indica si el Pla està activat o no. (Si/No)" | `SI` amb `ALERTA`; **`NO` amb `PREALERTA`** 🗄️. Majúscules, no `Si`/`No`. **La descripció oficial i l'observació no coincideixen** (§3.3) |
 | `fasedatahora` ⭐ | `text` | "Data/hora de l'inici de la fase" | `DD/MM/YYYY HH:MM`, **hora local d'Europe/Madrid** (§8) |
 | `comunicatpdf` | `url` | "Comunicat del Centre de Coordinació Operativa de Catalunya (CECAT) (URL a Documents Oberts)" | Objecte `{"url": …}`. **Pot contenir caràcters no segurs per a URL** (§6.2) |
-| `descripcio` | `text` | "Descripció addicional (opcional)" | Sempre present a les 5 captures, però **brut**: espais dobles, sufix `" - "`, salts de línia (§9) |
+| `descripcio` | `text` | "Descripció addicional (opcional)" | Sempre present a les 5 files observades, però **brut**: espais dobles, sufix `" - "`, salts de línia (§9) |
 
 Els camps `url` són **objectes amb una clau `url`**, no cadenes. Poden faltar del tot: el
 `cachedContents` de la metadata no reporta ni `non_null` ni `null` per a `plaicona` i
 `comunicatpdf`, mentre que sí ho fa per a tots els camps `text` ✅.
 
 ### Camps de sistema (només amb `$select=:*,*`) ✅
+
+Resposta sencera desada a
+[`captures/wj9c-j6vf-camps-sistema-2026-08-06.json`](captures/wj9c-j6vf-camps-sistema-2026-08-06.json),
+capturada en viu el **2026-08-06 12:31 UTC** amb la mateixa fila de l'INUNCAT que la captura de
+projecció pelada. Els quatre camps que afegeix `$select=:*,*`:
 
 ```json
 { ":id": "row-vb4t-m2s8~23fg",
@@ -98,7 +105,8 @@ Els camps `url` són **objectes amb una clau `url`**, no cadenes. Poden faltar d
 ```
 
 `:created_at` **2026-08-05T11:18:09Z** contra `fasedatahora` **05/08/2026 13:18**: la mateixa
-instant (CEST = UTC+2), al minut. Vegeu §7 i §8.
+instant (CEST = UTC+2), al minut. La precisió és de mil·lisegons (`.349Z`) i es trunca a
+segons en arribar a `started_at`. Vegeu §7 i §8.
 
 ---
 
@@ -128,7 +136,7 @@ enumera exactament tres fases i les defineix. Literals:
 | Fase | `plaactivat` | Evidència |
 | --- | :---: | --- |
 | `PREALERTA` | **`NO`** | 🗄️ observat 2024-12-02 ([captura](captures/wj9c-j6vf-prealerta-2024-12-02.json)) + 📄 "la prealerta no implica l'activació del pla" + 📄 comunicat oficial: "Cal recordar que la situació de Prealerta no comporta l'activació del Pla" ([captura](captures/comunicat-prealerta-inuncat-2026-08-02.txt)) |
-| `ALERTA` | `SI` | ✅ 2026-08-06, 🗄️ 2026-01-19 ×2, 🗄️ 2026-07-03 |
+| `ALERTA` | `SI` | ✅ 2026-08-06, 🗄️ 2026-01-19 ×2, 🗄️ 2026-07-03 ([captura](captures/wj9c-j6vf-infocat-2026-07-03.json)) |
 | `EMERGÈNCIA` | `SI` 🔶 | 📄 definida a la descripció. **Mai observada** ❓. Confiança alta que és `SI`: la definició diu explícitament "el pla s'activa en fase d'emergència" |
 
 **No hi ha fase de normalitat ni de desactivació.** Ho confirmen tres coses independents:
@@ -164,7 +172,10 @@ Quatre fonts independents, cap d'elles completa per si sola:
 | **D.** Llista d'acrònims que un consumidor de tercers sondeja | 21 acrònims esperats "a la natura" | 🗄️ |
 
 Taula unificada. "Comunicats" és el recompte de comunicats del CECAT entre 2024-11-20 i
-2026-08-06 (§7); "Activ. 17-22" és prealertes + alertes + emergències de `wfei-fjk5`.
+2026-08-06 (§7); "Activ. 17-22" és prealertes + alertes + emergències de `wfei-fjk5`, que només
+desglossa **13 plans** i no té cap fila per pla d'actuació: les seves files de tipologia
+"Ferrocarril" van sota `pla = PROCICAT`. Per això els quatre PA del PROCICAT hi consten com a
+`n/a` i no com a zero.
 
 | Acrònim | Risc / pla | Comunicats | Activ. 17-22 | Icona pròpia | Al registre |
 | --- | --- | ---: | ---: | :---: | :---: |
@@ -184,7 +195,7 @@ Taula unificada. "Comunicats" és el recompte de comunicats del CECAT entre 2024
 | `NOPLA` | Comunicat sense pla associat | 2 | n/a | ❌ | ❌ |
 | `SISMICAT` | Sísmic | 0 | 11 | ✅ | ✅ |
 | Pla per **Pandèmies** | Pandèmies | 0 | n/a | ✅ `ico_PROCICAT_PANDEMIA.png` | ✅ (nom llarg, sense acrònim) |
-| PA PROCICAT **Ferrocarril** | Transport de viatgers per ferrocarril | 0 | 11 | ✅ `ico_PROCICAT_FERROCARRIL.png` | ✅ |
+| PA PROCICAT **Ferrocarril** | Transport de viatgers per ferrocarril | 0 | n/a | ✅ `ico_PROCICAT_FERROCARRIL.png` | ✅ |
 | PA PROCICAT **Contaminació a l'Ebre (Flix)** | Contaminació de l'Ebre | 0 | n/a | ✅ `ico_PROCICAT_CONTAMINACIÓ.png` | ✅ |
 | PA PROCICAT **Subsidència, barri de l'Estació de Sallent** | Territorial multirisc | 0 | n/a | ❌ | ✅ |
 
@@ -212,6 +223,31 @@ Detall de la font A a
 [`captures/registre-plans-generalitat-2026-08-06.json`](captures/registre-plans-generalitat-2026-08-06.json),
 de la font B a
 [`captures/wfei-fjk5-activacions-2017-2022.json`](captures/wfei-fjk5-activacions-2017-2022.json).
+
+### 3.3 `plaactivat`: el domini documentat no és el domini observat
+
+La descripció oficial escriu el domini com a **"(Si/No)"** 📄, en minúscules amb inicial. Totes
+les observacions donen **`SI`** i **`NO`** en majúscules ✅ 🗄️. Les dues grafies conviuen a la
+mateixa font: una a la documentació del camp i l'altra a les dades.
+
+**Per això la comparació no pot ser estricta.** `plaactivat == "SI"` falla amb `Si`, amb ` SI `
+i amb el camp absent, i el cas on falla és precisament el que més importa: una fila
+d'`EMERGÈNCIA`, que **mai s'ha observat** (§3.1) i de la qual per tant no sabem la grafia.
+
+Regla, la mateixa tolerància que `plafase` (trap 14) i coherent amb AD-6 "`plafase` mana,
+`plaactivat` és derivat":
+
+| Valor de `plaactivat` (normalitzat: `strip` + `casefold` + sense diacrítics) | `activated` |
+| --- | --- |
+| `no` | **`False`** |
+| `si` | `True` |
+| Absent, buit, o qualsevol altre literal | **Es deriva de la fase**: `True` si la fase és `ALERTA` o superior a `PHASE_ORDER`, `False` altrament. `warning` una sola vegada per literal |
+
+`activated = False` **només** quan el valor normalitzat és exactament `no`. Un literal que no
+reconeixem no pot llegir-se mai com a "no passa res": el que fa és cedir la decisió a `plafase`,
+que és el camp autoritatiu. Si la fase també és desconeguda (`Phase.UNKNOWN`, que queda fora de
+`PHASE_ORDER` per AD-8) no hi ha res amb què comparar i `activated` és `False`, amb els dos
+literals registrats als diagnostics.
 
 ---
 
@@ -247,9 +283,11 @@ Fila real de prealerta, 🗄️ arxivada el **2024-12-02 09:18:52 UTC**
 ```
 
 I no és un cas marginal: dels 1.146 comunicats del CECAT, **589 (51,4%) porten el token
-`NOACTIVAT`** i 556 el token `ACTIVAT` 🗄️. **Filtrar per `plaactivat='SI'` amaga la meitat del
-senyal**, que és exactament l'error que comet el consumidor de tercers que va deixar les
-consultes arxivades ([`02`](02-existing-integrations.md) §4).
+`NOACTIVAT`** i els altres **557 (48,6%) el token `ACTIVAT`** 🗄️ (589 + 557 = 1.146; un dels 557
+és l'únic comunicat de `DESACTIVACIO`, que també porta `--ACTIVAT` al nom). **Filtrar per
+`plaactivat='SI'` amaga la meitat del senyal**, que és exactament l'error que comet el
+consumidor de tercers que va deixar les consultes arxivades
+([`02`](02-existing-integrations.md) §4).
 
 Contracte de parseig resultant, dues dimensions ortogonals:
 
@@ -349,8 +387,10 @@ Instruccionsalapoblació.pdf                                        ← 2,2 MB
 test.txt                                                           ← no és un PDF
 ```
 
-El primer d'aquests és el valor real de `comunicatpdf.url` a la captura del 2026-07-03
-🗄️. **Una URL amb `ó`, `à`, `é` i `'` sense codificar no és RFC 3986.** Qualsevol client HTTP
+El primer d'aquests és el valor real de `comunicatpdf.url` a la captura del 2026-07-03 🗄️
+([`captures/wj9c-j6vf-infocat-2026-07-03.json`](captures/wj9c-j6vf-infocat-2026-07-03.json): el
+nom és al llistat del contenidor **i** la fila demostra que era el valor del camp).
+**Una URL amb `ó`, `à`, `é` i `'` sense codificar no és RFC 3986.** Qualsevol client HTTP
 que la reconstrueixi o la validi estrictament pot petar; el codi ha de tractar el camp com a
 cadena opaca que només mostra, no com a URL que valida.
 
@@ -405,7 +445,9 @@ L'episodi de l'INUNCAT en curs (incident `I-125912`) permet reconstruir-ho 🗄�
 | … 4 actualitzacions més … | | |
 | `I-125912_ACTUALITZACIO--ACTIVAT_INUNCAT_202608061114.pdf` | 06/08 11:14 | l'actual ✅ |
 
-I la fila viva d'aquest mateix incident té `:created_at = 2026-08-05T11:18:09Z`
+I la fila viva d'aquest mateix incident ✅
+([`camps-sistema-2026-08-06`](captures/wj9c-j6vf-camps-sistema-2026-08-06.json)) té
+`:created_at = 2026-08-05T11:18:09.349Z`
 (= 05/08 13:18 local) i `fasedatahora = 05/08/2026 13:18`: **coincideixen al minut**, i són
 posteriors al primer comunicat `ACTIVAT` del 03/08. Interpretació 🔶: quan canvia la fase el
 publicador **substitueix la fila** (nou `:id`, nou `:created_at`) en lloc d'editar-la, i
@@ -490,12 +532,19 @@ observats: `01/12/2024 19:18`, `16/01/2026 19:12`, `16/01/2026 19:54`, `03/07/20
 posterior.** Si el segell fos UTC, tots els retards a l'estiu serien de 120 minuts negatius.
 Amb una mostra de 1.146 això no és una coincidència.
 
-Ho corrobora el propi comunicat 📄: peu de pàgina "Reus, diumenge 2 d'agost 2026 **18:45 h**"
-en un fitxer segellat `202608021847`, i una nota explícita que **només** els mapes van en UTC:
-"Hores expressades en UTC (cal sumar 2 hores en horari d'estiu i 1 en horari d'hivern)".
+Ho corrobora el propi comunicat 📄, que ocupa dues pàgines i està capturat en dos fitxers, un
+per pàgina. El peu de pàgina 1
+([`comunicat-…-2026-08-02.txt`](captures/comunicat-prealerta-inuncat-2026-08-02.txt)) diu "Reus,
+diumenge 2 d'agost 2026 **18:45 h**" en un fitxer segellat `202608021847`. La pàgina 2
+([`comunicat-…-2026-08-02-pagina2.txt`](captures/comunicat-prealerta-inuncat-2026-08-02-pagina2.txt))
+és la que porta la nota que **només** els mapes van en UTC, literal: "S'adjunten a continuació
+els mapes de risc per aquest episodi (Hores expressades en UTC (cal sumar 2 hores en horari
+d'estiu i 1 en horari d'hivern: UTC+2h / UTC+1h))".
 
-I ho tanca la fila viva ✅: `:created_at = 2026-08-05T11:18:09Z` amb
-`fasedatahora = 05/08/2026 13:18`, que és exactament UTC+2.
+I ho tanca la fila viva ✅
+([`camps-sistema-2026-08-06`](captures/wj9c-j6vf-camps-sistema-2026-08-06.json)):
+`:created_at = 2026-08-05T11:18:09Z` amb `fasedatahora = 05/08/2026 13:18`, que és exactament
+UTC+2.
 
 Regla de parseig: `datetime.strptime(v, "%d/%m/%Y %H:%M")` amb
 `ZoneInfo("Europe/Madrid")`, dins d'un `try` que retorna `None`. Preferir `:created_at` quan
@@ -505,14 +554,14 @@ hi sigui (§7.2).
 
 ## 9. `descripcio`: sempre present a la mostra, sempre bruta
 
-Declarada "(opcional)" 📄. A les 5 captures és **no buida 5/5**, però cap valor és net:
+Declarada "(opcional)" 📄. A les 5 files observades és **no buida 5/5**, però cap valor és net:
 
 | Captura | Valor literal |
 | --- | --- |
 | 2024-12-02 | `"Accident autocar. N-320 Porte-Puymorens   (Porta, Dep. Pirineus Orientals)\nRuta L'Hospitalet de Llobregat <-> Andorra  - "` |
 | 2026-01-19 (INUNCAT) | `"Alerta INUNCAT"` |
 | 2026-01-19 (NEUCAT) | `"Alerta NEUCAT 17 i 18 de gener "` |
-| 2026-07-03 | `"Incendi vegetació - "` |
+| [2026-07-03](captures/wj9c-j6vf-infocat-2026-07-03.json) | `"Incendi vegetació - "` |
 | 2026-08-06 | `"Avís intensitat pluja fins al 04/08  - "` |
 
 Patologies observades ✅ 🗄️: sufix `" - "` en 3/5 (residu d'una plantilla que concatena un
@@ -585,20 +634,20 @@ Cada trap ve d'una cosa que **he observat**, amb la captura que ho demostra. Cap
 
 | # | Trap | Evidència | Regla |
 | :---: | --- | --- | --- |
-| 1 | **`plaactivat: "NO"` existeix** i correspon a `PREALERTA`. `[]` i `"NO"` són coses diferents | 🗄️ [`prealerta-2024-12-02`](captures/wj9c-j6vf-prealerta-2024-12-02.json); 589/1.146 comunicats amb token `NOACTIVAT` | **Mai filtrar per `plaactivat='SI'`.** Ingerir totes les files i derivar l'estat de `plafase`; `plaactivat` és un camp derivat, no un filtre |
+| 1 | **`plaactivat: "NO"` existeix** i correspon a `PREALERTA`. `[]` i `"NO"` són coses diferents. A més la descripció oficial escriu el domini com a "(Si/No)" i les dades donen `SI`/`NO` | 🗄️ [`prealerta-2024-12-02`](captures/wj9c-j6vf-prealerta-2024-12-02.json); 589/1.146 comunicats amb token `NOACTIVAT`; 📄 descripció del camp | **Mai filtrar per `plaactivat='SI'`** i **mai comparar-lo estrictament**. Normalitzar-lo com `plafase` (`strip` + `casefold` + sense diacrítics); `activated = False` **només** amb el literal `no`; absent o irreconeixible, derivar-lo de `plafase`, que és l'autoritatiu (§3.3) |
 | 2 | La resposta pot ser **`[]`** | 🗄️ [`buit-2026-06-16`](captures/wj9c-j6vf-buit-2026-06-16.json) + 📄 descripció oficial | Llista buida és estat vàlid, no error. Zero plans, entitats a `0`/`off`, mai `unavailable` |
-| 3 | Hi pot haver **més d'una fila** | 🗄️ [`dos-plans-2026-01-19`](captures/wj9c-j6vf-dos-plans-2026-01-19.json): INUNCAT i NEUCAT alhora | Modelar una col·lecció indexada per `plaacronim`, no un objecte únic |
-| 4 | `planom` **no** és el nom complet: és igual a `plaacronim` a 5/5 captures, contra la seva pròpia descripció | ✅ 🗄️ les 5 captures | No fer-lo servir per al nom de l'entitat. Mapatge propi acrònim → nom llarg, amb fallback a l'acrònim |
+| 3 | Hi pot haver **més d'una fila**, i **dues poden compartir `plaacronim`**: als 267 comunicats del PROCICAT el token és sempre `PROCICAT` pelat, tot i que el registre hi té quatre plans d'actuació distints | 🗄️ [`dos-plans-2026-01-19`](captures/wj9c-j6vf-dos-plans-2026-01-19.json): INUNCAT i NEUCAT alhora; 🔶 §3.2 nota 2 per als PA del PROCICAT | Modelar una col·lecció indexada per **`(plaacronim, plafase)`**, no per `plaacronim` sol i no un objecte únic. Indexar per l'acrònim sol perdria silenciosament una de dues files simultànies del mateix pla |
+| 4 | `planom` **no** és el nom complet: és igual a `plaacronim` a 5/5 files observades, contra la seva pròpia descripció | ✅ 🗄️ les 5 files | No fer-lo servir per al nom de l'entitat. Mapatge propi acrònim → nom llarg, amb fallback a l'acrònim |
 | 5 | `plaacronim` pot ser un valor **fora de qualsevol llista coneguda** (`PENTA` no és al registre de la Generalitat; `NOPLA` no és un pla) | 🗄️ 3 comunicats `PENTA`, 2 `NOPLA` | Acrònim desconegut → `warning` una sola vegada + entitat genèrica. **Mai `KeyError`, mai descartar la fila** |
 | 6 | `plaicona` i `comunicatpdf` són **objectes** `{"url": …}`, poden faltar sencers, i `plaicona` pot apuntar a un 404 | ✅ `ico_VENTCAT.png` → 404 amb 135 comunicats de VENTCAT; `cachedContents` no reporta nuls per als camps `url` | `(row.get("comunicatpdf") or {}).get("url")`. Mai construir la URL de la icona des de l'acrònim |
-| 7 | La URL de `comunicatpdf` pot contenir **accents, apòstrofs i comes sense codificar** | 🗄️ `…/InstruccionsalapoblacióincendilaBisbald'Empordà4tconfinament.pdf` (captura 2026-07-03) | Tractar com a cadena opaca. No validar-la, no reconstruir-la, no passar-la per cap client HTTP |
+| 7 | La URL de `comunicatpdf` pot contenir **accents, apòstrofs i comes sense codificar** | 🗄️ `…/InstruccionsalapoblacióincendilaBisbald'Empordà4tconfinament.pdf` a [`infocat-2026-07-03`](captures/wj9c-j6vf-infocat-2026-07-03.json) | Tractar com a cadena opaca. No validar-la, no reconstruir-la, no passar-la per cap client HTTP |
 | 8 | El nom del PDF **no és un contracte**: 36 PDF de nom lliure conviuen amb els 1.146 canònics, i el contenidor té fins i tot un `test.txt` | 🗄️ [`cecat-comunicats-blobs`](captures/cecat-comunicats-blobs-2026-08-06.json) | No parsejar mai el nom del fitxer per obtenir pla, acció o data |
 | 9 | `fasedatahora` és `DD/MM/YYYY HH:MM` en **hora local d'Europe/Madrid**, no ISO, no UTC | ✅ `:created_at` UTC+2 exacte; 🗄️ 1.146 segells amb 0 retards negatius | `strptime` explícit amb `ZoneInfo("Europe/Madrid")` dins d'un `try`; `None` si falla. Preferir `:created_at` |
-| 10 | `descripcio` porta espais dobles, sufix `" - "` i **salts de línia literals** | ✅ 🗄️ 5/5 captures brutes | `.strip()`, buit tractat com a absent, mai `allow_html` ni interpolació HTML |
+| 10 | `descripcio` porta espais dobles, sufix `" - "` i **salts de línia literals** | ✅ 🗄️ 5/5 files brutes | `.strip()`, buit tractat com a absent, mai `allow_html` ni interpolació HTML |
 | 11 | `comunicatpdf` **canvia dins de la mateixa fase**, sense que canviï `fasedatahora` | 🗄️ 2026-01-19: fase del 16/01 19:54 amb PDF del 18/01 22:04; ✅ incident `I-125912` amb 5 PDF en la mateixa fase | El canvi de PDF **no** és un canvi de fase. Els events s'han de disparar per `(plaacronim, plafase)`, no pel hash de la fila |
 | 12 | L'**`ETag` està trencat** (sufix `--gzip` duplicat) i no genera 304; `If-Modified-Since` sí | ✅ [`http-headers`](captures/http-headers-2026-08-06.txt) | Cachejar amb `Last-Modified` + `If-Modified-Since`. Un 304 ha de conservar l'estat anterior, no buidar-lo |
 | 13 | **Cap camp és de tipus data** al servidor (`X-SODA2-Types` són tots `text`/`url`) | ✅ capçalera | No intentar `$where`/`$order` per data. Descarregar-ho tot cada cicle (mai passa de desenes de bytes) |
-| 14 | `EMERGÈNCIA` mai s'ha observat en un payload real | ❓ 15 emergències en 6 anys segons `wfei-fjk5` | El camí de codi de la fase màxima ha d'existir i estar cobert per un fixture **sintètic marcat com a tal**, i el codi no ha de dependre de l'accent (comparar amb `casefold()` i sense diacrítics) |
+| 14 | `EMERGÈNCIA` mai s'ha observat en un payload real, i **tampoc la grafia del seu `plaactivat`** | ❓ 15 emergències en 6 anys segons `wfei-fjk5`; 📄 domini documentat "(Si/No)" contra `SI`/`NO` observat | El camí de codi de la fase màxima ha d'existir i estar cobert per un fixture **sintètic marcat com a tal**, i el codi no ha de dependre de l'accent ni de la caixa: `casefold()` i sense diacrítics **tant a `plafase` com a `plaactivat`** (§3.3). Un accent o una `Si` no poden fer perdre la fase més greu |
 | 15 | La desactivació **no es publica**: 1 sol comunicat `DESACTIVACIO` en 623 dies | 🗄️ anàlisi de tokens | La desaparició de la fila és l'únic senyal de tancament. Cal reconciliació amb l'estat anterior |
 
 ---
@@ -607,13 +656,16 @@ Cada trap ve d'una cosa que **he observat**, amb la captura que ho demostra. Cap
 
 | Fitxer | Origen | Instant |
 | --- | --- | --- |
-| [`wj9c-j6vf-alerta-2026-08-06.json`](captures/wj9c-j6vf-alerta-2026-08-06.json) | ✅ endpoint en viu | 2026-08-06 11:49 UTC |
+| [`wj9c-j6vf-alerta-2026-08-06.json`](captures/wj9c-j6vf-alerta-2026-08-06.json) | ✅ endpoint en viu, **projecció pelada** (només els 8 camps de negoci) | 2026-08-06 11:49 UTC |
+| [`wj9c-j6vf-camps-sistema-2026-08-06.json`](captures/wj9c-j6vf-camps-sistema-2026-08-06.json) | ✅ endpoint en viu amb `$select=:*,*`. **L'única captura amb `:created_at`**: sosté l'inici de fase (§7.2), la corroboració UTC contra local (§8) i AD-3 | 2026-08-06 12:31 UTC |
 | [`wj9c-j6vf-prealerta-2024-12-02.json`](captures/wj9c-j6vf-prealerta-2024-12-02.json) | 🗄️ Wayback, projecció `SELECT` desaliassada | 2024-12-02 09:18:52 UTC |
 | [`wj9c-j6vf-buit-2026-06-16.json`](captures/wj9c-j6vf-buit-2026-06-16.json) | 🗄️ Wayback, endpoint sense filtres | 2026-06-16 18:15:46 UTC |
 | [`wj9c-j6vf-dos-plans-2026-01-19.json`](captures/wj9c-j6vf-dos-plans-2026-01-19.json) | 🗄️ Wayback, **unió de dues consultes filtrades** (INUNCAT + NEUCAT) del mateix segon | 2026-01-19 11:07:48 UTC |
-| [`wj9c-j6vf-metadata-2026-08-06.json`](captures/wj9c-j6vf-metadata-2026-08-06.json) | ✅ `/api/views/wj9c-j6vf.json` | 2026-08-06 |
+| [`wj9c-j6vf-infocat-2026-07-03.json`](captures/wj9c-j6vf-infocat-2026-07-03.json) | 🗄️ Wayback, `$where=plaactivat='SI' AND upper(plaacronim)='INFOCAT'`. La fila que demostra que la URL amb accents i apòstrof era el valor real del camp (§6.2, trap 7) | 2026-07-03 14:37:31 UTC |
+| [`wj9c-j6vf-metadata-2026-08-06.json`](captures/wj9c-j6vf-metadata-2026-08-06.json) | ✅ `/api/views/wj9c-j6vf.json`, **subconjunt documentat** de claus (vegeu [`captures/README.md`](captures/README.md)) | 2026-08-06 |
 | [`http-headers-2026-08-06.txt`](captures/http-headers-2026-08-06.txt) | ✅ capçaleres + proves de GET condicional | 2026-08-06 11:49 UTC |
-| [`comunicat-prealerta-inuncat-2026-08-02.txt`](captures/comunicat-prealerta-inuncat-2026-08-02.txt) | ✅ `pdftotext -layout` de `I-125912_INICI--NOACTIVAT_INUNCAT_202608021847.pdf`, pàgina 1 | doc. 2026-08-02 18:47 local |
+| [`comunicat-prealerta-inuncat-2026-08-02.txt`](captures/comunicat-prealerta-inuncat-2026-08-02.txt) | ✅ `pdftotext -layout` de `I-125912_INICI--NOACTIVAT_INUNCAT_202608021847.pdf`, **pàgina 1 de 2** | doc. 2026-08-02 18:47 local |
+| [`comunicat-prealerta-inuncat-2026-08-02-pagina2.txt`](captures/comunicat-prealerta-inuncat-2026-08-02-pagina2.txt) | ✅ **pàgina 2 de 2** del mateix PDF. És la que porta la nota "Hores expressades en UTC" que sosté §8 | doc. 2026-08-02 18:47 local |
 | [`cecat-comunicats-blobs-2026-08-06.json`](captures/cecat-comunicats-blobs-2026-08-06.json) | 🗄️ llistat del contenidor Azure, 1.224 blobs | 2026-08-06 |
 | [`analisi-cadencia-comunicats-2026-08-06.txt`](captures/analisi-cadencia-comunicats-2026-08-06.txt) | ✅ sortida de l'anàlisi de §7.3 i §8 | 2026-08-06 |
 | [`registre-plans-generalitat-2026-08-06.json`](captures/registre-plans-generalitat-2026-08-06.json) | ✅ `xqqe-tgav` amb `ambit='Generalitat'`, 17 files | 2026-08-06 |
@@ -672,7 +724,7 @@ natura (§3.2), i el seu filtre `plaactivat='SI'` és el trap núm. 1 d'aquest d
 > | # | Obert | Impacte | Mitigació a la v1 |
 > | :---: | --- | --- | --- |
 > | 1 | **La grafia de `plaacronim` per als PA del PROCICAT** (`PROCICAT`? `FERROCAT`? `PROCICAT-CALOR`?). Quatre grafies a quatre fonts, cap observada al feed | Baix. Afecta el nom mostrat, no la lògica | Acrònim desconegut → entitat genèrica + `warning` una vegada (trap 5). Es resol amb la primera activació observada |
-> | 2 | **`EMERGÈNCIA` mai observada** en un payload real (15 en 6 anys) | Mitjà. És la fase que més importa | Fixture sintètic **marcat com a tal**; comparació sense diacrítics i amb `casefold()` (trap 14) |
+> | 2 | **`EMERGÈNCIA` mai observada** en un payload real (15 en 6 anys), i amb ella la grafia real del seu `plaactivat` | Mitjà. És la fase que més importa | Fixture sintètic **marcat com a tal**; comparació sense diacrítics i amb `casefold()` a `plafase` **i** a `plaactivat`, i `plaactivat` irreconeixible derivat de la fase (traps 1 i 14, §3.3) |
 > | 3 | **Si un canvi de fase substitueix la fila o l'edita.** Una sola transició observada | Mitjà. Decideix si `:created_at` és fiable com a inici de fase | Fer servir `:created_at` amb `fasedatahora` de reserva, i disparar events per `(plaacronim, plafase)` mai per `:id` (trap 11) |
 > | 4 | **`plaicona` de VENTCAT i PLASEQTA** (les seves icones donen 404) | Nul. Ja hem decidit no fer servir `plaicona` (§11.3) | Cap |
 > | 5 | **El contenidor Azure de comunicats no és una API documentada.** L'he fet servir per fer arqueologia, no en runtime | Nul mentre no en depenguem | **No consumir-lo des de la integració.** Si algun dia es vol històric, cal negociar-ho amb la font |
