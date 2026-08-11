@@ -393,6 +393,7 @@ minuts.
 | `_unknown_phases: set[str]`, `_unknown_acronyms: set[str]`, `_unknown_activated: set[str]` | Per emetre el `warning` **una sola vegada** per literal, i per als diagnostics |
 | `_consecutive_failures: int` | Llindar de `cecat_service_degraded` |
 | `_degraded: bool` | Per emetre l'event de recuperació una sola vegada |
+| `is_first_refresh: bool` | `True` al primer cicle; fa sembrar `_previous` i silencia `_emit_events` per evitar un `phase_started` espuri a cada reinici (Cicle, [`03`](03-feature-spec.md) §3.1) |
 
 **Per què la clau és la parella i no l'acrònim sol.** Als 267 comunicats del PROCICAT el token
 sempre és `PROCICAT` pelat, mentre el registre hi té quatre plans d'actuació distints: la
@@ -447,11 +448,31 @@ distints, la confusió desapareix sense tocar res.
 2. si 304  → retorna self.data intacta. Cap event. FI.
 3. si error → _consecutive_failures += 1; potser emet degraded; raise UpdateFailed.
               Cap event. L'estat anterior es conserva.
-4. normalitza les files → dict[(acronym, phase), PlanActivation]
-5. _emit_events(previous=self._previous, current=current)
-6. self._previous = current; _consecutive_failures = 0; potser emet recuperació
+4. normalitza les files → current: dict[(acronym, phase), PlanActivation]
+5. si is_first_refresh:
+      self._previous = current; is_first_refresh = False     # cap event al primer cicle
+   altrament:
+      _emit_events(previous=self._previous, current=current)
+      self._previous = current
+6. _consecutive_failures = 0; potser emet recuperació
 7. retorna CecatState(plans=current, last_modified=…)
 ```
+
+**El primer cicle no emet cap event.** El pas 5 silencia `_emit_events` al primer cicle
+(`is_first_refresh`): hi sembra `self._previous = current` i no dispara res, seguint el patró del
+coordinador germà `ha-incendiscat` (llavor a la línia 546, porta a la 615). Sense aquest guard, cada
+reinici de Home Assistant dispararia un `cecat_plan_phase_started` espuri per a cada pla actiu,
+perquè `_previous` començaria buit i tot el del primer sondeig es llegiria com a `added`. És el
+mateix perill de reinici que [`03`](03-feature-spec.md) §3.1 rebutja per als estats d'entitat quan
+descarta el valor reservat `unknown`, i un disseny no pot argumentar un perill com a motiu per
+rebutjar un mecanisme i enviar el mateix perill en un altre.
+
+**Cost acceptat.** Una activació que comenci mentre Home Assistant està aturat no s'anuncia mai com
+a event: el primer cicle la sembra a `_previous` sense disparar res. És acceptable perquè **no es
+perd cap estat**: el sensor de fase, el sensor de plans i el binary sensor mostren tots la situació
+real immediatament després del reinici, de manera que l'usuari no queda cec. Les dues meitats de la
+història del reinici (events deliberadament silenciosos, estats d'entitat frescos) es troben aquí i
+a [`03`](03-feature-spec.md) §3.1, i cadascuna remet a l'altra perquè no cal repetir-la.
 
 **El pas 3 és el més important de tota la integració.** Un cicle fallit **no** pot generar
 `cecat_plan_phase_ended`: si ho fes, cada glitch de xarxa notificaria a l'usuari que
@@ -468,7 +489,10 @@ cap emergència. `sensor.proteccio_civil_catalunya_darrera_actualitzacio` és el
 
 Amb la clau composta, la detecció és una diferència de conjunts de claus. **Cap event no en
 suprimeix cap altre**: `phase_started` i `phase_ended` s'emeten sempre, i `phase_changed` és
-purament **additiu**.
+purament **additiu**. Aquesta funció només es crida **a partir del segon cicle**: el primer cicle
+sembra `_previous` i no hi passa (pas 5 del Cicle més amunt), perquè amb `_previous` buit tot el
+primer sondeig es llegiria com a `added` i dispararia un `phase_started` espuri per a cada pla actiu
+a cada reinici.
 
 ```python
 added   = current.keys() - previous.keys()

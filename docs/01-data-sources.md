@@ -743,7 +743,7 @@ natura (§3.2), i el seu filtre `plaactivat='SI'` és el trap núm. 1 d'aquest d
 > nota 2 (que tots els plans d'actuació del PROCICAT reporten `PROCICAT` pelat a `plaacronim`), és
 > una **inferència 🔶 de confiança mitjana-alta**, no una observació: cap captura mostra dues files
 > de PROCICAT alhora. En sentit contrari, el consumidor de tercers que la mateixa §3.2 nota 2
-> documenta (i que [`02`](02-existing-integrations.md) §4 detalla) sondeja explícitament
+> documenta (i que [`02`](02-existing-integrations.md) §6.2 detalla) sondeja explícitament
 > `PROCICAT-CALOR` i `PROCICAT-FERROCARRIL` entre els 21 acrònims que consulta, cosa que suggereix
 > que algú esperava que la font distingís els sub-plans. **Si resulta que `plaacronim` els
 > distingeix, l'obert 6 desapareix sol** i la decisió de no afirmar mai un origen a

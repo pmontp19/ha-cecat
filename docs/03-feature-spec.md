@@ -549,6 +549,23 @@ opcional:
    **regla**; el codi que la implementa viu a §5.2, que és l'**única** secció que conté el missatge
    copiable.
 
+**`min_phase` i `plans` arriben a la plantilla per un bloc `variables:`, no per `!input` directe.**
+`!input` substitueix només al nivell de node YAML, mai dins d'una cadena Jinja, de manera que un
+`ordre.index(min_phase)` escrit literalment a la condició no rep mai el valor de l'entrada si
+`min_phase` no està lligat abans. El blueprint declara per això un bloc `variables:` a nivell
+d'automatització, que lliga les dues entrades que la condició i l'acció fan servir dins de
+plantilles:
+
+```yaml
+variables:
+  min_phase: !input min_phase
+  plans: !input plans
+```
+
+Això deixa `min_phase` i `plans` disponibles com a variables a la condició de `min_phase` i al
+filtre per `plans` de l'acció. Cap altre nom no hi entra: `acronym` continua sent qualificat com a
+`trigger.event.data.acronym` (§5.2).
+
 Forma exacta de la condició, perquè ningú no reintrodueixi el perill:
 
 ```jinja
@@ -585,8 +602,8 @@ neutre, no queda cap posició a comparar. La regla d'ordenar el guard **abans** 
 segueix vigent, però pertany a un altre constructe: la **condició** de `min_phase` de §5.1, que sí
 que en conté un.
 
-Tot valor surt qualificat com a `trigger.event.data.*`: el blueprint només té les tres entrades de
-§5 i no defineix cap `variables:`, per tant un nom pelat com `acronym` no existiria i Jinja el
+Tot valor surt qualificat com a `trigger.event.data.*`: el bloc `variables:` de §5.1 només lliga
+`min_phase` i `plans`, per tant un nom pelat com `acronym` no hi és, no existiria, i Jinja el
 renderitzaria com a cadena buida amb un avís al log, deixant la notificació sense el pla.
 
 ```jinja
