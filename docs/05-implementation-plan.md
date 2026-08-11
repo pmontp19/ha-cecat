@@ -296,7 +296,7 @@ llengua de referència. `brand/icon.png` i `icon@2x.png`.
 - [ ] Les 4 entitats i tots els camps del config flow tenen clau als **tres** idiomes
 - [ ] Els 5 valors de `max_phase` tenen etiqueta traduïda als tres idiomes
 - [ ] `hassfest` passa
-- [ ] `icons.json`, **parsejat com a JSON i no grepat**, assigna a cada entitat una icona `mdi:` fixa i cap valor no prové de `plaicona` (§11.3 de [`01`](01-data-sources.md))
+- [ ] `icons.json`, **parsejat com a JSON i no grepat**, assigna a cada entitat una icona `mdi:` fixa i cap valor no prové de `plaicona` (§11, punt 3 de [`01`](01-data-sources.md))
 - [ ] `test_translations.py` compara les claus dels tres fitxers i falla si divergeixen
 
 **Verificació.** `validate.yml` verd + `pytest tests/test_translations.py`.
@@ -392,7 +392,7 @@ es deixen tancades aquí perquè no es discuteixin dues vegades.
 | 1 | Grafia de `plaacronim` per als PA del PROCICAT | Veredicte, obert 1 | T3 (`PLAN_NAMES`) | Obert. Mitigat amb fallback. Es tanca amb la primera activació observada |
 | 2 | `EMERGÈNCIA` mai observada en viu, ni la grafia del seu `plaactivat` | Veredicte, obert 2 | T2 (fixtures sintètics), T3 (normalització), T7 | Obert. Mitigat |
 | 3 | Un canvi de fase substitueix la fila o l'edita? | Veredicte, obert 3 | T3 (`resolve_started_at`), T8 (clau d'event) | Obert. Mitigat per la clau `(acronym, phase)` |
-| 4 | `plaicona` de VENTCAT i PLASEQTA (404) | Veredicte, obert 4 | Cap | ✅ Resolt: no fem servir `plaicona` com a icona (§11.3 de [`01`](01-data-sources.md)) |
+| 4 | `plaicona` de VENTCAT i PLASEQTA (404) | Veredicte, obert 4 | Cap | ✅ Resolt: no fem servir `plaicona` com a icona (§11, punt 3 de [`01`](01-data-sources.md)) |
 | 5 | Consumir el contenidor Azure de comunicats per a l'històric | Veredicte, obert 5 | Cap | ✅ Resolt: **no**. No és una API documentada (AD-14 de [`04`](04-architecture.md)) |
 | 6 | Dos PA distints sota el mateix `plaacronim` es poden confondre en un sol `phase_changed` amb `escalation: true` | Veredicte, obert 6 | T8 (regla d'aparellament), T12 (blueprint) | Obert. **Limitació acceptada, no mitigada**: documentada a §5 de [`04`](04-architecture.md) i a §4.2 i §5 de [`03`](03-feature-spec.md). Depèn de l'obert 1 |
 | 7 | Entitat per pla (13-18 binary sensors) | Decisió de disseny, fora del veredicte | Cap | ✅ Resolt: **no**. `plaacronim` no és un conjunt tancat (§7 de [`03`](03-feature-spec.md)) |

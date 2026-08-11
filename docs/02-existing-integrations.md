@@ -261,4 +261,4 @@ una per acrònim, sobre 21 acrònims. No sé qui és ni què construeix. Ens ser
 | Sense geometria, sense bbox, sense territori | `dpc` en té perquè la seva font en té. La nostra no |
 | `quality_scale.yaml` amb objectiu 🥈 silver | `nina` (silver), `ha-incendiscat` |
 | `diagnostics.py` des del primer dia | `dpc`, `ha-incendiscat` |
-| Sense `plaicona` com a icona d'entitat | [`01`](01-data-sources.md) §11.3 (restricció de llicència sobre símbols oficials) |
+| Sense `plaicona` com a icona d'entitat | [`01`](01-data-sources.md) §11, punt 3 (restricció de llicència sobre símbols oficials) |

@@ -99,7 +99,7 @@ La fase més alta activa a Catalunya. És la que va al dashboard i a les automac
 | `device_class` | `SensorDeviceClass.ENUM` |
 | `options` | `["none", "prealerta", "alerta", "emergencia", "unrecognized"]` |
 | Estat quan la resposta és `[]` | **`none`** |
-| Icona | `mdi:shield-alert-outline` (fixa; **no** `plaicona`, vegeu [`01`](01-data-sources.md) §11.3) |
+| Icona | `mdi:shield-alert-outline` (fixa; **no** `plaicona`, vegeu [`01`](01-data-sources.md) §11, punt 3) |
 
 Ordre de severitat: `none` < `prealerta` < `alerta` < `emergencia`. `unrecognized` és la vàlvula
 d'escapament: si `plafase` porta un literal que no reconeixem, l'estat és `unrecognized` i s'emet un
@@ -669,7 +669,7 @@ condition:
 | **Parsejar el PDF del comunicat** per extreure comarques o restriccions | Dues capes d'heurística (extracció de PDF + mapatge de zones meteorològiques a comarques) sobre text lliure extern. I les "comarques" del comunicat sovint són **zones del SMC**, no comarques ([`01`](01-data-sources.md) §5) |
 | **Històric d'activacions** | La font és només estat actual. Els dos datasets estadístics del portal estan aturats des del 2023-08-14 i acaben el 2022 ([`01`](01-data-sources.md) §10) |
 | **Consumir el contenidor Azure de comunicats** | És llistable públicament i ha estat clau per a la recerca, però **no és una API documentada**. Dependre'n en runtime seria construir sobre un detall d'implementació ([`01`](01-data-sources.md) §14, obert 5) |
-| **Fer servir `plaicona`** com a icona de les entitats | Són els símbols oficials dels plans i la llicència en restringeix l'ús ([`01`](01-data-sources.md) §11.3). A més `ico_VENTCAT.png` dona 404 |
+| **Fer servir `plaicona`** com a icona de les entitats | Són els símbols oficials dels plans i la llicència en restringeix l'ús ([`01`](01-data-sources.md) §11, punt 3). A més `ico_VENTCAT.png` dona 404 |
 | **`geo_location`** o qualsevol entitat amb coordenades | Cap geometria a la font |
 | Accions de servei | Els events cobreixen el cas i el blueprint és la UX escollida, igual que als germans |
 
