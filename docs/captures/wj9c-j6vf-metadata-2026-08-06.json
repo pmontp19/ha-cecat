@@ -1,0 +1,245 @@
+{
+  "id": "wj9c-j6vf",
+  "name": "Plans de protecció civil en fase de prealerta, alerta o emergència",
+  "description": "Informació sobre l’estat dels plans d’emergència de Protecció Civil amb el nom del pla, l'especificació de la fase d'activació (prealerta, alerta o emergència) i la descripció del fenomen. En alguns casos també s’hi inclouen els comunicats oficials del Centre de Coordinació Operativa de Catalunya (CECAT), que és el centre superior de coordinació i informació de l'estructura de la Protecció Civil de Catalunya, ja que poden contenir consells d’autoprotecció, comarques afectades o restriccions per a la població. Quan no hi ha cap pla d’emergència activat, el conjunt de dades és buit, presenta 0 files.\n\nLes fases són les següents:\n\nPREALERTA: La prealerta es produeix, en general, davant de les situacions següents:\n·\tQuan és previsible un fenomen que pot produir situacions de risc per a la població a mitjà termini.\n·\tTambé es pot produir com a conseqüència del seguiment de maniobres o incidències a determinades instal·lacions, manca de serveis bàsics o essencials, i en la finalització d’emergències fins al retorn a la normalitat.\nLa prealerta no implica l’activació del pla.\n\nALERTA: El pla s'activa en fase d’alerta, en general, davant de les situacions següents:\n·\tQuan hi ha paràmetres objectius que fan preveure una situació d’emergència important per a la població a curt termini.\n·\tDavant d’afectacions per riscos naturals que no afectin ni puguin afectar de forma greu o generalitzada persones, béns o vies de comunicació.\n·\tEn emergències a determinades instal·lacions o infraestructures que no puguin produir danys a l’exterior però que puguin produir alarma en la població.\n\nEMERGÈNCIA: El pla s'activa en fase d’emergència, en general, davant de les situacions següents:\n·\tQuan s’informa de l’activació en fase d’emergència d’un pla especial de la Generalitat per afectació a la zona on es troba el municipi, la comarca o el territori.\n·\tDavant d’emergències que poden comportar o comporten, per la seva evolució, un greu risc per a la població, o el municipi o la comarca.",
+  "attribution": "Direcció General de Protecció Civil",
+  "attributionLink": "https://administraciodigital.gencat.cat/ca/dades/dades-obertes/informacio-practica/llicencies/",
+  "licenseId": "SEE_TERMS_OF_USE",
+  "license": {
+    "name": "See Terms of Use"
+  },
+  "category": "Seguretat",
+  "tags": [
+    "emergències",
+    "seguretat",
+    "plans",
+    "protecció civil",
+    "cecat",
+    "ods3_salut i benestar",
+    "ods11_ciutats i comunitats sostenibles",
+    "ods13_acció pel clima"
+  ],
+  "provenance": "official",
+  "newBackend": true,
+  "createdAt": 1720421179,
+  "publicationDate": 1720769761,
+  "rowsUpdatedAt": 1786008017,
+  "viewLastModified": 1758535585,
+  "viewCount": 22462,
+  "downloadCount": 677,
+  "metadata": {
+    "custom_fields": {
+      "Freqüència d'actualització": {
+        "Freqüència d'actualització": "Variable"
+      },
+      "Idioma": {
+        "Idioma": "Català",
+        "Dataset name (EN)": "Civil protection plans currently in the pre-alert, alert or emergency phase",
+        "Nombre del conjunto de datos (ES)": "Planes de protección civil en fase de prealerta, alerta o emergència"
+      },
+      "Informació de gènere o sexe": {
+        "Informació de gènere o sexe": "No aplicable"
+      },
+      "Enllaços relacionats": {
+        "Nom": "Nombre d’avisos i activacions dels plans de Protecció Civil de la Generalitat de Catalunya",
+        "URL": "https://analisi.transparenciacatalunya.cat/Seguretat/Nombre-d-avisos-i-activacions-dels-plans-de-Protec/wfei-fjk5/about_data"
+      },
+      "Actors": {
+        "Departament": "Interior i Seguretat Pública",
+        "Tipus actor": "Generalitat de Catalunya"
+      },
+      "Àmbit geogràfic": {
+        "Informació geogràfica": "Sense informació geogràfica",
+        "Àmbit geogràfic": "Catalunya"
+      }
+    },
+    "rowIdentifier": 26058687,
+    "availableDisplayTypes": [
+      "table",
+      "fatrow",
+      "page"
+    ]
+  },
+  "columns": [
+    {
+      "id": 26058679,
+      "name": "PlaIcona",
+      "dataTypeName": "url",
+      "description": "Icona representativa del pla  (URL a icona corresponent de DocumentsOberts) (veure Icones només per a ús i identificació dels plans de Protecció Civil)",
+      "fieldName": "plaicona",
+      "position": 1,
+      "renderTypeName": "url",
+      "tableColumnId": 15823947,
+      "format": {},
+      "subColumnTypes": [
+        "url",
+        "description"
+      ]
+    },
+    {
+      "id": 26058680,
+      "name": "PlaAcronim",
+      "dataTypeName": "text",
+      "description": "Acrònim Pla (ex: PLASEQTA)",
+      "fieldName": "plaacronim",
+      "position": 2,
+      "renderTypeName": "text",
+      "tableColumnId": 15823946,
+      "cachedContents": {
+        "non_null": "1",
+        "largest": "INUNCAT",
+        "null": "0",
+        "top": [
+          {
+            "item": "INUNCAT",
+            "count": "1"
+          }
+        ],
+        "smallest": "INUNCAT",
+        "count": "1",
+        "cardinality": "1"
+      },
+      "format": {}
+    },
+    {
+      "id": 26058681,
+      "name": "PlaNom",
+      "dataTypeName": "text",
+      "description": "Nom complet del Pla (ex: Pla especial d’emergència exterior del sector químic de Tarragona)",
+      "fieldName": "planom",
+      "position": 3,
+      "renderTypeName": "text",
+      "tableColumnId": 15823945,
+      "cachedContents": {
+        "non_null": "1",
+        "largest": "INUNCAT",
+        "null": "0",
+        "top": [
+          {
+            "item": "INUNCAT",
+            "count": "1"
+          }
+        ],
+        "smallest": "INUNCAT",
+        "count": "1",
+        "cardinality": "1"
+      },
+      "format": {}
+    },
+    {
+      "id": 26058682,
+      "name": "PlaFase",
+      "dataTypeName": "text",
+      "description": "Fase actual del Pla",
+      "fieldName": "plafase",
+      "position": 4,
+      "renderTypeName": "text",
+      "tableColumnId": 15823944,
+      "cachedContents": {
+        "non_null": "1",
+        "largest": "ALERTA",
+        "null": "0",
+        "top": [
+          {
+            "item": "ALERTA",
+            "count": "1"
+          }
+        ],
+        "smallest": "ALERTA",
+        "count": "1",
+        "cardinality": "1"
+      },
+      "format": {}
+    },
+    {
+      "id": 26058683,
+      "name": "PlaActivat",
+      "dataTypeName": "text",
+      "description": "Indica si el Pla està activat o no. (Si/No)",
+      "fieldName": "plaactivat",
+      "position": 5,
+      "renderTypeName": "text",
+      "tableColumnId": 15823943,
+      "cachedContents": {
+        "non_null": "1",
+        "largest": "SI",
+        "null": "0",
+        "top": [
+          {
+            "item": "SI",
+            "count": "1"
+          }
+        ],
+        "smallest": "SI",
+        "count": "1",
+        "cardinality": "1"
+      },
+      "format": {}
+    },
+    {
+      "id": 26058684,
+      "name": "FaseDataHora",
+      "dataTypeName": "text",
+      "description": "Data/hora de l’inici de la fase",
+      "fieldName": "fasedatahora",
+      "position": 6,
+      "renderTypeName": "text",
+      "tableColumnId": 15823942,
+      "cachedContents": {
+        "non_null": "1",
+        "largest": "05/08/2026 13:18",
+        "null": "0",
+        "top": [
+          {
+            "item": "05/08/2026 13:18",
+            "count": "1"
+          }
+        ],
+        "smallest": "05/08/2026 13:18",
+        "count": "1",
+        "cardinality": "1"
+      },
+      "format": {}
+    },
+    {
+      "id": 26058685,
+      "name": "ComunicatPDF",
+      "dataTypeName": "url",
+      "description": "Comunicat del Centre de Coordinació Operativa de Catalunya (CECAT) (URL a Documents Oberts)",
+      "fieldName": "comunicatpdf",
+      "position": 7,
+      "renderTypeName": "url",
+      "tableColumnId": 15823941,
+      "format": {},
+      "subColumnTypes": [
+        "url",
+        "description"
+      ]
+    },
+    {
+      "id": 26058686,
+      "name": "Descripcio",
+      "dataTypeName": "text",
+      "description": "Descripció addicional (opcional)",
+      "fieldName": "descripcio",
+      "position": 8,
+      "renderTypeName": "text",
+      "tableColumnId": 15823940,
+      "cachedContents": {
+        "non_null": "1",
+        "largest": "Avís intensitat pluja fins al 04/08  - ",
+        "null": "0",
+        "top": [
+          {
+            "item": "Avís intensitat pluja fins al 04/08  - ",
+            "count": "1"
+          }
+        ],
+        "smallest": "Avís intensitat pluja fins al 04/08  - ",
+        "count": "1",
+        "cardinality": "1"
+      },
+      "format": {}
+    }
+  ]
+}
