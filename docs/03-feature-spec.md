@@ -340,6 +340,13 @@ data:
 Vuit camps, i **cap d'origen**: aquest event diu en quina fase ha entrat el pla, i no diu d'on
 venia.
 
+`phase_raw` hi és **sempre**, mai `null`, també quan `phase` és `unrecognized` i també quan la fase
+s'ha reconegut sense cap problema. No és decoració ni un camp de depuració: és l'únic lloc on una
+automació pot veure el literal que ha arribat de veritat, i és el carril que llegeix el blueprint
+(§5.1 regla 3), per tant ometre'l quan la fase parseja bé deixaria el missatge de fase no reconeguda
+sense res a mostrar. La mateixa garantia val per a l'atribut `plans` (§3.2), per a `phase_changed`
+(§4.2) i per a `phase_ended` (§4.3).
+
 #### Per què `phase_started` NO porta cap origen, i `phase_ended` sí
 
 L'asimetria és deliberada i no s'ha d'aplanar. Es deriva directament del resultat central de la
@@ -396,9 +403,10 @@ data:
   started_at: "2026-08-05T11:18:09+00:00"
 ```
 
-`phase_raw` i `previous_phase_raw` hi són **sempre**, igual que a l'atribut `plans` (§3.2) i que
-al payload de `phase_ended` (§4.3), i no són decoració: són l'únic lloc on una automació pot
-veure el literal que ha arribat de veritat.
+`phase_raw` i `previous_phase_raw` hi són **sempre**, i la garantia val per a **tots** els llocs on
+apareix un literal cru, sense excepcions: `phase_started` (§4.1), l'atribut `plans` (§3.2),
+`phase_ended` (§4.3) i aquest event. No són decoració: són l'únic lloc on una automació pot veure el
+literal que ha arribat de veritat.
 
 `escalation` es calcula **només** entre dues fases que totes dues tenen posició a `PHASE_ORDER`,
 perquè la tercera condició de l'aparellament garanteix que aquest event no s'emet mai amb un
@@ -537,8 +545,9 @@ opcional:
    forma que `_severity` a [`04`](04-architecture.md) §4.
 3. **El missatge ha de dir que la fase no s'ha reconegut**, i mostrar `phase_raw`. Notificar és
    correcte; presentar-ho com si fos una fase coneguda seria una altra mentida. `phase_raw` hi és
-   sempre (§4.2). Aquesta és la **regla**; el codi que la implementa viu a §5.2, que és l'**única**
-   secció que conté el missatge copiable.
+   sempre al payload que escolta el blueprint, que és `phase_started` (§4.1). Aquesta és la
+   **regla**; el codi que la implementa viu a §5.2, que és l'**única** secció que conté el missatge
+   copiable.
 
 Forma exacta de la condició, perquè ningú no reintrodueixi el perill:
 
@@ -570,14 +579,21 @@ Dos casos, i cap més:
 | Fase reconeguda | Estat neutre: "PROCICAT: ara en fase ALERTA" |
 | Fase `unrecognized` | Diu que la fase **no s'ha reconegut** i mostra `phase_raw` (§5.1 regla 3) |
 
-L'ordre de les comprovacions segueix sent part de la regla: es comprova `unrecognized` **primer**,
-de manera que cap valor sense ordre no arriba mai a un `index()`.
+El missatge **no conté cap comparació d'ordre**: es comprova `unrecognized` i la branca de la fase
+reconeguda és el cas per defecte, sense cap `index()` a la vista. Amb el missatge reduït a un estat
+neutre, no queda cap posició a comparar. La regla d'ordenar el guard **abans** de qualsevol `index()`
+segueix vigent, però pertany a un altre constructe: la **condició** de `min_phase` de §5.1, que sí
+que en conté un.
+
+Tot valor surt qualificat com a `trigger.event.data.*`: el blueprint només té les tres entrades de
+§5 i no defineix cap `variables:`, per tant un nom pelat com `acronym` no existiria i Jinja el
+renderitzaria com a cadena buida amb un avís al log, deixant la notificació sense el pla.
 
 ```jinja
 {% if trigger.event.data.phase == 'unrecognized' %}
-  {{ acronym }}: fase NO RECONEGUDA ("{{ trigger.event.data.phase_raw }}")
+  {{ trigger.event.data.acronym }}: fase NO RECONEGUDA ("{{ trigger.event.data.phase_raw }}")
 {% else %}
-  {{ acronym }}: ara en fase {{ trigger.event.data.phase | upper }}
+  {{ trigger.event.data.acronym }}: ara en fase {{ trigger.event.data.phase | upper }}
 {% endif %}
 ```
 
@@ -606,12 +622,13 @@ alhora rebrà dos avisos per una sola transició.
 | Avisar-me quan s'activi qualsevol pla | (estat, no event) | Trigger d'estat sobre `binary_sensor.proteccio_civil_catalunya_pla_activat` a `on`, o el blueprint. **No** l'event `phase_started`, que també salta amb una prealerta |
 | Avisar-me quan un pla arribi a una fase concreta | `phase_started` | Trigger d'event `cecat_plan_phase_started` amb condició sobre `phase`. Correcte per a **qualsevol** entrada en la fase: una fila que apareix de nou, una que hi puja i una que **hi baixa**. L'event **no diu d'on venia** (§4.1): si vols la direcció, el carril és `phase_changed` |
 | Avisar-me només d'emergències | `phase_started` | Trigger d'event `cecat_plan_phase_started` amb condició `phase == emergencia`. Cobreix l'escalada `alerta → emergencia`, que és com va passar l'única transició observada a la font (`I-125912`, [`01`](01-data-sources.md) §7.2) |
-| Saber si l'INUNCAT concretament està en alerta | (atribut, no event) | Template sobre l'atribut `plans` de `sensor.proteccio_civil_catalunya_plans`. Vegeu el README |
+| Saber si l'INUNCAT concretament està en alerta | (atribut, no event) | Template sobre l'atribut `plans` de `sensor.proteccio_civil_catalunya_plans`. L'exemple és just sota d'aquesta taula |
 | Creuar amb el Meteocat: avís greu **i** INUNCAT en alerta | (condició, no event) | Condició que creua `ha-avisoscat` i `ha-cecat`. Dues integracions a la mateixa instància, cap acoblament ([`02`](02-existing-integrations.md) §3) |
 | Registrar la durada dels episodis | `phase_ended` | Escoltar `cecat_plan_phase_ended` i llegir `duration_minutes`. L'event arriba per a **totes** les fases, també les intermèdies, perquè ja no se suprimeix mai (§4.3). ⚠️ L'**exactitud** de la durada d'una fase intermèdia depèn de l'obert 3 ([`01`](01-data-sources.md) §14): si el publicador edita la fila en lloc de substituir-la, `started_at` es queda a l'inici de l'episodi i la durada surt inflada. `started_at_source` ho fa visible |
 | Notificar només escalades | `phase_changed` | Trigger d'event `cecat_plan_phase_changed` amb condició `escalation == true`. **Amb el fals positiu de §4.2**: per a `PROCICAT`, dos plans d'actuació distints poden semblar una escalada d'un de sol. És l'únic carril que hereta l'obert 6 |
 
-Exemple del cas per pla concret, que va al README:
+Exemple del cas per pla concret. Aquesta és la seva única còpia; quan la integració es publiqui, va
+també al README:
 
 ```yaml
 condition:
