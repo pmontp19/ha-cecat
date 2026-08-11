@@ -44,7 +44,7 @@ al portal de Transparència de la Generalitat. Verificat en viu el 2026-08-06 �
 | --- | --- | --- |
 | `/resource/wj9c-j6vf.json` | La que farem servir | Retorna només els camps de negoci |
 | `/resource/wj9c-j6vf.json?$select=:*,*` | Afegeix `:id`, `:created_at`, `:updated_at`, `:version` | **Clau per detectar l'inici de fase** (§7) |
-| `/api/v3/views/wj9c-j6vf/query.json?accessType=DOWNLOAD` | Equivalent, inclou els camps de sistema per defecte | La que fa servir el consumidor de tercers de [`02`](02-existing-integrations.md) §4 |
+| `/api/v3/views/wj9c-j6vf/query.json?accessType=DOWNLOAD` | Equivalent, inclou els camps de sistema per defecte | La que fa servir el consumidor de tercers de [`02`](02-existing-integrations.md) §6.1 |
 | `/api/views/wj9c-j6vf.json` | Metadata completa: descripció, llicència, `rowsUpdatedAt`, `columns[].cachedContents` | No cal en runtime |
 
 ### Capçaleres i GET condicional ✅
@@ -287,7 +287,7 @@ I no és un cas marginal: dels 1.146 comunicats del CECAT, **589 (51,4%) porten 
 és l'únic comunicat de `DESACTIVACIO`, que també porta `--ACTIVAT` al nom). **Filtrar per
 `plaactivat='SI'` amaga la meitat del senyal**, que és exactament l'error que comet el
 consumidor de tercers que va deixar les consultes arxivades
-([`02`](02-existing-integrations.md) §4).
+([`02`](02-existing-integrations.md) §6.2).
 
 Contracte de parseig resultant, dues dimensions ortogonals:
 
