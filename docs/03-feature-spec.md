@@ -321,9 +321,8 @@ la fase no és `none`. Sense excepcions i sense supressió: tant si la fila apar
 fa servir el blueprint (§5). Una fila que entra en `unrecognized` també el dispara.
 
 **Es dispara per QUALSEVOL entrada en una fase**, i les tres maneres compten igual: una fila que
-apareix de nou, una que **puja** de fase, i una que **baixa** de fase. Una baixada és una entrada
-en la fase nova tant com ho és una pujada, i per això arriba pel mateix carril. El payload porta
-la direcció perquè el consumidor la pugui dir.
+apareix de nou, una que puja de fase, i una que baixa de fase. Una baixada és una entrada en la
+fase nova tant com ho és una pujada, i per això arriba pel mateix carril.
 
 ```yaml
 event_type: cecat_plan_phase_started
@@ -332,34 +331,36 @@ data:
   name: INUNCAT
   phase: alerta
   phase_raw: ALERTA
-  previous_phase: prealerta       # null si la fila apareix de nou o si és ambigu
-  previous_phase_raw: PREALERTA   # null en els mateixos dos casos
   activated: true
   started_at: "2026-08-05T11:18:09+00:00"
   description: "Avís intensitat pluja fins al 04/08  -"
   communique_url: "https://documents.dadesobertes.gencat.cat/cecat/docs/I-125912_…pdf"
 ```
 
-#### Quan `previous_phase` porta valor i quan és `null`
+Vuit camps, i **cap d'origen**: aquest event diu en quina fase ha entrat el pla, i no diu d'on
+venia.
 
-`previous_phase` és la fase en què aquell acrònim estava immediatament abans, i **s'omple quan
-al mateix cicle s'ha retirat exactament una clau d'aquell acrònim**. És `null` en dos casos, i
-tots dos volen dir el mateix, que no ho sabem:
+#### Per què `phase_started` NO porta cap origen, i `phase_ended` sí
 
-| Cas | `previous_phase` | Per què |
+L'asimetria és deliberada i no s'ha d'aplanar. Es deriva directament del resultat central de la
+recerca: **`plaacronim` no identifica un pla** ([`01`](01-data-sources.md) §3.2 nota 2). Sota
+aquesta premissa, quan una clau apareix i una altra del mateix acrònim desapareix al mateix cicle,
+**no és coneixible** si es tracta del mateix pla que ha canviat de fase o de dos plans distints.
+Per tant:
+
+| Event | Porta origen? | Per què |
 | --- | --- | --- |
-| No hi havia cap clau d'aquell acrònim al cicle anterior | **`null`** | La fila apareix de nou: no ve de cap fase |
-| S'ha retirat **exactament una** clau d'aquell acrònim | La fase d'aquella clau | És l'únic origen possible |
-| S'han retirat **més d'una** clau d'aquell acrònim | **`null`** | Amb dues baixes i una alta no es pot dir de quina de les dues ve, i inventar-ho seria una mentida. Mateixa honestedat que la branca ambigua de §4.2 |
+| `cecat_plan_phase_started` | **No** | L'origen d'una clau que apareix seria una **inferència** sobre continuïtat, i amb un acrònim que pot contenir diversos plans aquesta inferència és exactament el fals positiu de l'obert 6 |
+| `cecat_plan_phase_ended` | **Sí**, `previous_phase` i `previous_phase_raw` | Aquí no hi ha inferència: la clau `(acronym, phase)` **ha desaparegut**, i la seva fase és un fet sobre la clau mateixa, no una conjectura sobre què ha passat després |
 
-`previous_phase_raw` segueix exactament la mateixa regla, i porta el literal cru quan
-`previous_phase` porta valor.
+Dit d'una altra manera: `phase_ended` informa d'una clau que existia i ja no existeix, cosa
+observada; `phase_started` informaria d'una relació entre dues claus, cosa no observada.
 
-**`previous_phase` s'omple encara que no es compleixi la condició d'aparellament de §4.2.** Una
-transició `ALERTA` cap a `unrecognized` no afegeix cap `phase_changed`, perquè un costat no és a
-`PHASE_ORDER`, però el `phase_started` d'aquell cicle **sí** que porta `previous_phase: alerta`,
-que és informació certa i útil. Només l'event additiu exigeix que les dues fases siguin
-ordenables.
+**La lliçó, escrita una vegada perquè no es torni a redescobrir:** la continuïtat al llarg d'un
+acrònim **no és derivable** d'aquesta font. Per tant **cap event no afirma un origen**, i
+l'aparellament només s'intenta en un sol lloc, el `phase_changed` additiu de §4.2, que és opcional
+i que porta la seva limitació documentada com a residu acceptat (obert 6). S'ha intentat portar
+l'origen al carril `phase_started` i ha fallat sempre al mateix lloc: el PROCICAT.
 
 ### 4.2 `cecat_plan_phase_changed`
 
@@ -377,10 +378,9 @@ Si en falla qualsevol, simplement no hi ha `phase_changed`; el parell `phase_end
 `phase_started` ja s'ha emès igualment i el senyal no es perd. La regla sencera, amb el motiu de
 cada condició i els exemples treballats, és a [`04`](04-architecture.md) §5.
 
-Ara que `phase_started` porta `previous_phase` (§4.1), aquest event és **estrictament derivable**
-d'aquell: és un carril de conveniència per a qui vol semàntica d'escalada ja calculada, no l'únic
-lloc on es pot veure una transició. Es manté perquè aquell càlcul, fet una vegada i bé, val més
-que cada automació el reimplementi.
+És l'**únic** lloc del disseny on s'intenta un aparellament, i per tant l'únic que pot afirmar una
+transició. No es pot derivar de `phase_started`, perquè aquell event no porta cap origen (§4.1):
+qui vulgui semàntica de transició ha d'escoltar aquest event i acceptar-ne la limitació.
 
 ```yaml
 event_type: cecat_plan_phase_changed
@@ -537,7 +537,8 @@ opcional:
    forma que `_severity` a [`04`](04-architecture.md) §4.
 3. **El missatge ha de dir que la fase no s'ha reconegut**, i mostrar `phase_raw`. Notificar és
    correcte; presentar-ho com si fos una fase coneguda seria una altra mentida. `phase_raw` hi és
-   sempre (§4.2).
+   sempre (§4.2). Aquesta és la **regla**; el codi que la implementa viu a §5.2, que és l'**única**
+   secció que conté el missatge copiable.
 
 Forma exacta de la condició, perquè ningú no reintrodueixi el perill:
 
@@ -551,53 +552,37 @@ L'ordre dels operands importa: Jinja avalua `or` amb curtcircuit, per tant amb
 `phase == 'unrecognized'` la crida a `index()` no s'executa mai. Escriure-ho al revés tornaria a
 donar l'error de plantilla.
 
-I el missatge, quan la fase no es reconeix:
+### 5.2 El missatge: estat neutre, sense afirmar direcció
+
+**Aquesta secció és l'única propietària del missatge del blueprint.** És l'únic fragment copiable
+de tot el conjunt de documents; §5.1 hi posa una regla, no codi.
+
+El missatge diu **en quina fase és el pla ara**, i res més. No diu que hi hagi entrat, ni que hagi
+pujat, ni que hagi baixat, perquè `phase_started` no porta cap origen (§4.1) i qualsevol direcció
+seria una inferència sobre continuïtat que aquesta font no permet fer. Afirmar "ha pujat" quan de
+fet un pla s'ha acabat i n'ha començat un altre seria dir una cosa falsa, en català pla, a una
+persona i sobre una emergència de protecció civil.
+
+Dos casos, i cap més:
+
+| Cas | Missatge |
+| --- | --- |
+| Fase reconeguda | Estat neutre: "PROCICAT: ara en fase ALERTA" |
+| Fase `unrecognized` | Diu que la fase **no s'ha reconegut** i mostra `phase_raw` (§5.1 regla 3) |
+
+L'ordre de les comprovacions segueix sent part de la regla: es comprova `unrecognized` **primer**,
+de manera que cap valor sense ordre no arriba mai a un `index()`.
 
 ```jinja
 {% if trigger.event.data.phase == 'unrecognized' %}
   {{ acronym }}: fase NO RECONEGUDA ("{{ trigger.event.data.phase_raw }}")
-{% endif %}
-```
-
-### 5.2 El missatge ha de dir la direcció, no només la fase
-
-`phase_started` arriba tant si el pla **puja** de fase com si **baixa** (§4.1 i §5). Amb el
-missatge dient només la fase nova, "INUNCAT: ALERTA" voldria dir alhora "s'ha declarat una
-alerta" i "l'emergència ha baixat a alerta", que en una integració de protecció civil són
-notícies oposades. El payload ja porta `previous_phase`; el missatge l'ha de fer servir.
-
-Quatre casos, i el missatge els ha de distingir tots:
-
-| Cas | Missatge |
-| --- | --- |
-| Alguna de les dues fases és `unrecognized` | Diu que la fase **no s'ha reconegut** i mostra `phase_raw` (§5.1 regla 3) |
-| `previous_phase` és `null` | El pla **ha entrat** en la fase: "INUNCAT ha entrat en fase ALERTA" |
-| La fase nova és **més alta** | El pla **ha pujat**: "INUNCAT ha pujat d'ALERTA a EMERGÈNCIA" |
-| La fase nova és **més baixa** | El pla **ha baixat**, i la millora ha de ser llegible en lloc de semblar una alarma nova: "INUNCAT ha baixat d'EMERGÈNCIA a ALERTA" |
-
-**L'ordre de les comprovacions és part de la regla, no un detall d'estil.** Igual que a §5.1, cap
-valor sense ordre pot arribar a un `index()`: es comprova `unrecognized` **primer**, després el
-`previous_phase` nul, i **només llavors** es comparen posicions.
-
-```jinja
-{% set ordre = ['prealerta', 'alerta', 'emergencia'] %}
-{% set nova = trigger.event.data.phase %}
-{% set previa = trigger.event.data.previous_phase %}
-
-{% if nova == 'unrecognized' or previa == 'unrecognized' %}
-  {{ acronym }}: fase NO RECONEGUDA ("{{ trigger.event.data.phase_raw }}")
-{% elif previa is none %}
-  {{ acronym }} ha entrat en fase {{ nova | upper }}
-{% elif ordre.index(nova) > ordre.index(previa) %}
-  {{ acronym }} ha pujat de {{ previa | upper }} a {{ nova | upper }}
 {% else %}
-  {{ acronym }} ha baixat de {{ previa | upper }} a {{ nova | upper }}
+  {{ acronym }}: ara en fase {{ trigger.event.data.phase | upper }}
 {% endif %}
 ```
 
-Les dues primeres branques són guards, no casos particulars: quan s'arriba a `index()` ja se sap
-que les dues fases són reconegudes i que cap és nul·la. Escriure la comparació abans dels guards
-tornaria a donar l'error de plantilla que §5.1 existeix per evitar.
+Un usuari que vulgui saber la direcció té el carril `phase_changed` de §6, que és l'únic lloc on
+s'intenta un aparellament, amb la limitació de l'obert 6 documentada i assumida.
 
 ⚠️ **El fals positiu de l'obert 6 no afecta aquest blueprint.** Com que escolta `phase_started` i
 no `escalation: true`, la confusió de §4.2 entre dos plans d'actuació que comparteixen
@@ -619,7 +604,7 @@ alhora rebrà dos avisos per una sola transició.
 | Vull… | Carril | Com |
 | --- | --- | --- |
 | Avisar-me quan s'activi qualsevol pla | (estat, no event) | Trigger d'estat sobre `binary_sensor.proteccio_civil_catalunya_pla_activat` a `on`, o el blueprint. **No** l'event `phase_started`, que també salta amb una prealerta |
-| Avisar-me quan un pla arribi a una fase concreta | `phase_started` | Trigger d'event `cecat_plan_phase_started` amb condició sobre `phase`. Correcte per a **qualsevol** entrada en la fase: una fila que apareix de nou, una que hi puja i una que **hi baixa**. `previous_phase` diu de quina venia, o és `null` (§4.1) |
+| Avisar-me quan un pla arribi a una fase concreta | `phase_started` | Trigger d'event `cecat_plan_phase_started` amb condició sobre `phase`. Correcte per a **qualsevol** entrada en la fase: una fila que apareix de nou, una que hi puja i una que **hi baixa**. L'event **no diu d'on venia** (§4.1): si vols la direcció, el carril és `phase_changed` |
 | Avisar-me només d'emergències | `phase_started` | Trigger d'event `cecat_plan_phase_started` amb condició `phase == emergencia`. Cobreix l'escalada `alerta → emergencia`, que és com va passar l'única transició observada a la font (`I-125912`, [`01`](01-data-sources.md) §7.2) |
 | Saber si l'INUNCAT concretament està en alerta | (atribut, no event) | Template sobre l'atribut `plans` de `sensor.proteccio_civil_catalunya_plans`. Vegeu el README |
 | Creuar amb el Meteocat: avís greu **i** INUNCAT en alerta | (condició, no event) | Condició que creua `ha-avisoscat` i `ha-cecat`. Dues integracions a la mateixa instància, cap acoblament ([`02`](02-existing-integrations.md) §3) |
@@ -678,9 +663,9 @@ condition:
 | 10 | `fasedatahora` il·legible o absent i sense `:created_at`: `started_at = None`, `started_at_source = null`, cap excepció |
 | 11 | Transició prealerta → alerta del mateix acrònim: **tres** events, no un. `cecat_plan_phase_ended` (`previous_phase = prealerta`, `previous_phase_raw`, **amb `duration_minutes` calculat**), `cecat_plan_phase_started` (`phase = alerta`) i `cecat_plan_phase_changed` amb `escalation: true`. Cap dels tres no en suprimeix cap altre |
 | 11b | La mateixa transició, però cap a `emergencia`: el `cecat_plan_phase_started` **s'emet igualment**, per tant una automació que escolti només `phase_started` amb `phase == emergencia` es dispara. És la regressió que la supressió causava |
-| 11c | Tot `cecat_plan_phase_started` porta `previous_phase` i `previous_phase_raw`: amb la fase d'origen quan al cicle s'ha retirat **exactament una** clau d'aquell acrònim, i **`null`** tant si la fila apareix de nou com si se n'han retirat més d'una (§4.1) |
-| 11d | Transició `emergencia → alerta` del mateix acrònim (la situació **millorant**): el `phase_started` porta `phase = alerta` i `previous_phase = emergencia`, i el missatge renderitzat pel blueprint **diu que ha baixat**, no el mateix text que una entrada en alerta des de zero (§5.2) |
-| 11e | Transició `alerta → unrecognized`: el `phase_started` porta `previous_phase = alerta` tot i que **no** s'hi afegeix cap `phase_changed`. `previous_phase` no depèn de la condició d'aparellament |
+| 11c | El payload de `cecat_plan_phase_started` té **exactament els vuit camps** de §4.1 (`acronym`, `name`, `phase`, `phase_raw`, `activated`, `started_at`, `description`, `communique_url`) i **cap camp d'origen**: ni `previous_phase` ni `previous_phase_raw`. L'origen d'una clau que apareix no és derivable d'aquesta font (§4.1) |
+| 11d | Transició `emergencia → alerta` del mateix acrònim (la situació millorant): el `phase_started` porta `phase = alerta`, i el missatge renderitzat pel blueprint és l'**estat neutre** de §5.2 ("INUNCAT: ara en fase ALERTA"). La seqüència **notifica**, que era el propòsit, i **no afirma cap direcció** |
+| 11e | Cicle amb **una baixa i dues altes** del mateix acrònim (p. ex. `{(PROCICAT, prealerta)}` cap a `{(PROCICAT, alerta), (PROCICAT, emergencia)}`): **dos** `phase_started`, **un** `phase_ended`, i **cap** `phase_changed` perquè falla la condició de cardinalitat. Cap dels dos `phase_started` no afirma un origen, que és precisament el cas on una inferència seria falsa per a almenys un dels dos |
 | 12 | `comunicatpdf` canvia sense canviar `plafase`: **cap** event. Només canvia l'atribut |
 | 13 | Fila que desapareix en un cicle **vàlid**: un `cecat_plan_phase_ended` amb `duration_minutes` |
 | 14 | Fila que desapareix perquè la petició **falla**: cap event, estat anterior intacte |

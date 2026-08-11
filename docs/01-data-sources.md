@@ -739,6 +739,16 @@ natura (§3.2), i el seu filtre `plaactivat='SI'` és el trap núm. 1 d'aquest d
 > | 5 | **El contenidor Azure de comunicats no és una API documentada.** L'he fet servir per fer arqueologia, no en runtime | Nul mentre no en depenguem | **No consumir-lo des de la integració.** Si algun dia es vol històric, cal negociar-ho amb la font |
 > | 6 | **Dos plans d'actuació distints sota el mateix `plaacronim` poden generar un event de canvi de fase que no s'ha produït.** Si el PROCICAT reporta l'acrònim pelat (obert 1), un cicle on un PA s'acaba i un altre comença dona una alta i una baixa, i **s'hi afegeix** un `cecat_plan_phase_changed` amb `escalation: true` que afirma una escalada que no ha passat | Baix i **estret**: els events de començament i de tancament d'aquell cicle són individualment correctes, i el blueprint, que només escolta `phase_started`, no se'n veu afectat. Només ho pateix qui filtri per `escalation: true` | **Limitació acceptada i documentada**, no mitigada: corroborar amb `plaicona` o `descripcio` seria construir una porta de correcció sobre dos camps poc fiables (§6.3, §9). Detall i alternatives rebutjades a [`04`](04-architecture.md) §5. Es tanca sola si l'obert 1 resol que els PA porten acrònims distints |
 >
+> **Què reobriria l'obert 6, i com de lluny és de tancar-se.** La premissa que el sosté, §3.2
+> nota 2 (que tots els plans d'actuació del PROCICAT reporten `PROCICAT` pelat a `plaacronim`), és
+> una **inferència 🔶 de confiança mitjana-alta**, no una observació: cap captura mostra dues files
+> de PROCICAT alhora. En sentit contrari, el consumidor de tercers de §7.1 sondeja explícitament
+> `PROCICAT-CALOR` i `PROCICAT-FERROCARRIL` entre els 21 acrònims que consulta, cosa que suggereix
+> que algú esperava que la font distingís els sub-plans. **Si resulta que `plaacronim` els
+> distingeix, l'obert 6 desapareix sol** i la decisió de no afirmar mai un origen a
+> `cecat_plan_phase_started` ([`03`](03-feature-spec.md) §4.1) es pot revisar. La primera
+> observació real d'un PROCICAT amb dues files simultànies, o d'un acrònim amb sufix, ho resol.
+>
 > Cap dels sis bloqueja començar. Els dos que importen (2 i 3) es tanquen sols la primera
 > vegada que hi hagi una emergència o una transició de fase reals, el 6 depèn del mateix que
 > l'1, i el disseny de [`03-feature-spec.md`](03-feature-spec.md) està construït per no petar
