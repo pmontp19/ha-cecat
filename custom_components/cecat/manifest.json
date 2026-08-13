@@ -1,0 +1,13 @@
+{
+  "domain": "cecat",
+  "name": "Protecció Civil Catalunya",
+  "codeowners": ["@pmontp19"],
+  "config_flow": true,
+  "documentation": "https://github.com/pmontp19/ha-cecat",
+  "integration_type": "service",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/pmontp19/ha-cecat/issues",
+  "requirements": [],
+  "single_config_entry": true,
+  "version": "0.0.0"
+}
