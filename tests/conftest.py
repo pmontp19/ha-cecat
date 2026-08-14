@@ -9,6 +9,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+from aioresponses import aioresponses
 from custom_components.cecat.const import DOMAIN
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -99,3 +100,10 @@ def config_entry(hass: HomeAssistant) -> MockConfigEntry:
     )
     entry.add_to_hass(hass)
     return entry
+
+
+@pytest.fixture
+def mock_http() -> Generator[aioresponses]:
+    """An ``aioresponses`` context covering every request made in a test."""
+    with aioresponses() as mocked:
+        yield mocked

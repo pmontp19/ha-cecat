@@ -1,14 +1,17 @@
-"""The Protecció Civil Catalunya (cecat) integration.
+"""The Proteccio Civil Catalunya (cecat) integration.
 
 Exposes the activation state of Catalonia's civil-protection plans
 (INUNCAT, VENTCAT, NEUCAT, PROCICAT, SISMICAT, ...) sourced from the
 CECAT feed on the Catalan open-data portal.
 
-``async_setup_entry`` stores per-entry runtime data under ``hass.data[DOMAIN]``
-and registers an update listener that rebinds the coordinator poll interval
-when ``scan_interval_min`` changes in the options flow, without reloading the
-entry (docs/04-architecture.md §7). The coordinator itself and platform
-forwarding land in T5.
+Each config entry owns one ``CecatCoordinator`` that lives on
+``entry.runtime_data`` (docs/04-architecture.md §9): no ``hass.data`` dict,
+because this is a single-config-entry service integration and ``runtime_data``
+is the typed handle every platform reads.
+
+An options-update listener rebinds the coordinator poll interval when
+``scan_interval_min`` changes in the options flow, without reloading the
+entry (docs/04-architecture.md §7).
 """
 
 from __future__ import annotations
@@ -16,44 +19,57 @@ from __future__ import annotations
 from datetime import timedelta
 
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 
+from . import coordinator
 from .const import CONF_SCAN_INTERVAL_MIN, DEFAULT_SCAN_INTERVAL_MIN, DOMAIN
 
-__all__ = ["DOMAIN"]
+# Target set is BINARY_SENSOR + SENSOR (docs/04-architecture.md §6). Each
+# platform joins this tuple only when its module exists: forwarding a config
+# entry to a platform with no module raises and would make the integration
+# unloadable, so the tuple starts empty and grows with T6/T7.
+PLATFORMS: tuple[Platform, ...] = ()
+
+# The coordinator a config entry carries on its ``runtime_data``. Typing the
+# entry this way gives every platform ``entry.runtime_data`` already typed as
+# the coordinator, with no cast and no ``hass.data`` lookup.
+CecatConfigEntry = ConfigEntry[coordinator.CecatCoordinator]
+
+__all__ = ["DOMAIN", "PLATFORMS", "CecatConfigEntry"]
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_setup_entry(hass: HomeAssistant, entry: CecatConfigEntry) -> bool:
     """Set up cecat from a config entry.
 
-    Registers the options-update listener so that changing
-    ``scan_interval_min`` rebinds the coordinator's ``update_interval``
-    without a reload. The coordinator, first refresh and platform forwarding
-    are wired in by T5.
+    Arms the coordinator with a first refresh, registers the options-update
+    listener, and forwards the entry to its platforms. ``runtime_data`` holds
+    the coordinator; nothing is written to ``hass.data``. The forward is
+    skipped while ``PLATFORMS`` is empty.
     """
-    hass.data.setdefault(DOMAIN, {})
+    coord = coordinator.CecatCoordinator(hass, entry)
+    entry.runtime_data = coord
+    await coord.async_config_entry_first_refresh()
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
+    if PLATFORMS:
+        await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Unload a cecat config entry.
+async def async_unload_entry(hass: HomeAssistant, entry: CecatConfigEntry) -> bool:
+    """Unload a cecat config entry and stop its coordinator."""
+    unload_ok = True
+    if PLATFORMS:
+        unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    await entry.runtime_data.async_shutdown()
+    return unload_ok
 
-    Drops the per-entry runtime data. Platform unloading is wired in by T5.
-    """
-    hass.data.get(DOMAIN, {}).pop(entry.entry_id, None)
-    return True
 
-
-async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
+async def _async_update_listener(hass: HomeAssistant, entry: CecatConfigEntry) -> None:
     """Rebind the coordinator poll interval when ``scan_interval_min`` changes.
 
-    Reads the coordinator from ``hass.data[DOMAIN][entry.entry_id]``; until T5
-    stores it there this is a safe no-op, so the options flow is testable in
-    isolation by mocking the coordinator (docs/05 T9 decision lore).
+    Reads the coordinator from ``entry.runtime_data``; the options flow
+    triggers an entry update, so the listener always sees a live coordinator.
     """
-    coordinator = hass.data.get(DOMAIN, {}).get(entry.entry_id)
-    if coordinator is None:
-        return
     interval = entry.options.get(CONF_SCAN_INTERVAL_MIN, DEFAULT_SCAN_INTERVAL_MIN)
-    coordinator.update_interval = timedelta(minutes=interval)
+    entry.runtime_data.update_interval = timedelta(minutes=interval)
