@@ -1,0 +1,27 @@
+{
+  "entity": {
+    "sensor": {
+      "max_phase": {
+        "name": "Max phase",
+        "state": {
+          "none": "None",
+          "prealerta": "Prealert",
+          "alerta": "Alert",
+          "emergencia": "Emergency",
+          "unrecognized": "Unrecognized"
+        }
+      },
+      "plans": {
+        "name": "Plans"
+      },
+      "last_updated": {
+        "name": "Last updated"
+      }
+    },
+    "binary_sensor": {
+      "plan_activated": {
+        "name": "Active plan"
+      }
+    }
+  }
+}

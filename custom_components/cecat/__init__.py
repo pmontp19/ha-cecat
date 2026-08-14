@@ -28,8 +28,7 @@ from .const import CONF_SCAN_INTERVAL_MIN, DEFAULT_SCAN_INTERVAL_MIN, DOMAIN
 # Target set is BINARY_SENSOR + SENSOR (docs/04-architecture.md §6). Each
 # platform joins this tuple only when its module exists: forwarding a config
 # entry to a platform with no module raises and would make the integration
-# unloadable, so the tuple starts empty and grows with T6/T7.
-PLATFORMS: tuple[Platform, ...] = ()
+PLATFORMS: tuple[Platform, ...] = (Platform.BINARY_SENSOR, Platform.SENSOR)
 
 # The coordinator a config entry carries on its ``runtime_data``. Typing the
 # entry this way gives every platform ``entry.runtime_data`` already typed as

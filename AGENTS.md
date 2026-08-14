@@ -6,11 +6,12 @@ release, architecture, and sharp-edge notes that should travel with the code.
 ## State of the repository
 
 The data layer is landed: `api.py` (T4), `models.py` (T3), `const.py` (T1), `config_flow.py`
-(T9 scaffold), and `coordinator.py` + `__init__.py` (T5). Sensors (T6), binary sensor (T7) and
-events (T8) are next. The design is finished and lives in [`docs/`](docs/) (`01` to `05`): read
-`docs/01-data-sources.md` before touching anything that talks to the data source,
-`docs/04-architecture.md` §5 for the coordinator cycle and reconciliation key, and §11 for the
-fourteen architectural decisions and why each alternative was rejected.
+(T9 scaffold), and `coordinator.py` + `__init__.py` (T5). Sensors are landed too (T6:
+`entity.py` + `sensor.py`, `Platform.SENSOR` active, translations for the three entities).
+Binary sensor (T7) and events (T8) are next. The design is finished and lives in [`docs/`](docs/)
+(`01` to `05`): read `docs/01-data-sources.md` before touching anything that talks to the data
+source, `docs/04-architecture.md` §5 for the coordinator cycle and reconciliation key, and §11 for
+the fourteen architectural decisions and why each alternative was rejected.
 
 The coordinator maintains the cycle-to-cycle state (`_previous` keyed by `(acronym, phase)`,
 `_last_modified`, `_unknown_*` sets, resilience counters) but does **not** fire bus events yet:
