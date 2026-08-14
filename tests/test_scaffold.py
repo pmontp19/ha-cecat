@@ -29,7 +29,9 @@ def test_domain_is_cecat() -> None:
 
 
 def test_base_url_is_socrata_dataset() -> None:
-    assert BASE_URL == "https://analisi.transparenciacatalunya.cat/resource/wj9c-j6vf.json"
+    assert (
+        BASE_URL == "https://analisi.transparenciacatalunya.cat/resource/wj9c-j6vf.json"
+    )
 
 
 def test_params_select_all_with_system_fields() -> None:
