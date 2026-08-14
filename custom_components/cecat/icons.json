@@ -1,0 +1,9 @@
+{
+  "entity": {
+    "sensor": {
+      "max_phase": {
+        "default": "mdi:shield-alert-outline"
+      }
+    }
+  }
+}

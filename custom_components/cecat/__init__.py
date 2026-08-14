@@ -29,7 +29,7 @@ from .const import CONF_SCAN_INTERVAL_MIN, DEFAULT_SCAN_INTERVAL_MIN, DOMAIN
 # platform joins this tuple only when its module exists: forwarding a config
 # entry to a platform with no module raises and would make the integration
 # unloadable, so SENSOR joins when T6 lands.
-PLATFORMS: tuple[Platform, ...] = (Platform.BINARY_SENSOR,)
+PLATFORMS: tuple[Platform, ...] = (Platform.BINARY_SENSOR, Platform.SENSOR)
 
 # The coordinator a config entry carries on its ``runtime_data``. Typing the
 # entry this way gives every platform ``entry.runtime_data`` already typed as

@@ -6,19 +6,16 @@ release, architecture, and sharp-edge notes that should travel with the code.
 ## State of the repository
 
 The data layer is landed: `api.py` (T4), `models.py` (T3), `const.py` (T1), `config_flow.py`
-(T9), `coordinator.py` + `__init__.py` (T5), and events (T8). Sensors (T6) and binary sensor
-(T7) are next. The design is finished and lives in [`docs/`](docs/) (`01` to `05`): read
-`docs/01-data-sources.md` before touching anything that talks to the data source,
-`docs/04-architecture.md` §5 for the coordinator cycle and reconciliation key, and §11 for the
-fourteen architectural decisions and why each alternative was rejected.
+(T9 scaffold), and `coordinator.py` + `__init__.py` (T5). Sensors are landed too (T6:
+`entity.py` + `sensor.py`, `Platform.SENSOR` active, translations for the three entities).
+Binary sensor (T7) and events (T8) are next. The design is finished and lives in [`docs/`](docs/)
+(`01` to `05`): read `docs/01-data-sources.md` before touching anything that talks to the data
+source, `docs/04-architecture.md` §5 for the coordinator cycle and reconciliation key, and §11 for
+the fourteen architectural decisions and why each alternative was rejected.
 
-Events are landed (T8): `_emit_events` in `coordinator.py` fires `cecat_plan_phase_started` /
-`_ended` for every key added/removed after each non-first cycle, plus an additive
-`cecat_plan_phase_changed` behind three conditions (one add, one remove, both phases in
-`PHASE_ORDER`), and `cecat_service_degraded` at 3 consecutive failures plus one recovery
-event. Never add a pairing heuristic for the ambiguous case; the repair issue for degraded is
-T10. Test listeners that must see fire order need `@callback` (plain sync functions go to the
-executor and scramble the capture order).
+The coordinator maintains the cycle-to-cycle state (`_previous` keyed by `(acronym, phase)`,
+`_last_modified`, `_unknown_*` sets, resilience counters) but does **not** fire bus events yet:
+phase events and `cecat_service_degraded` land in T8 (`_emit_events`).
 
 ## Language
 
