@@ -139,7 +139,12 @@ async def test_update_listener_falls_back_to_default(
 
 
 async def test_setup_registers_update_listener(hass: HomeAssistant) -> None:
-    """``async_setup_entry`` registers exactly one update listener."""
+    """``async_setup_entry`` registers exactly one update listener.
+
+    Under the entry's ``setup_lock`` (the production guarantee of
+    ``hass.config_entries.async_setup``) because since T7 the setup forwards
+    to ``BINARY_SENSOR``, which demands the lock.
+    """
     entry = _entry_with_options({CONF_SCAN_INTERVAL_MIN: 5})
     entry.add_to_hass(hass)
     assert not entry.update_listeners
@@ -148,7 +153,8 @@ async def test_setup_registers_update_listener(hass: HomeAssistant) -> None:
         ".async_config_entry_first_refresh",
         new_callable=AsyncMock,
     ):
-        await real_setup(hass, entry)
+        async with entry.setup_lock:
+            await real_setup(hass, entry)
     assert len(entry.update_listeners) == 1
 
 
