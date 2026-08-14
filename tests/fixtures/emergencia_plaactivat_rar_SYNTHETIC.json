@@ -1,0 +1,46 @@
+[
+  {
+    "_comment": "SYNTHETIC, NOT observed evidence. Three rows of EMERGÈNCIA (never observed live, docs/01-data-sources.md §3.1 trap 14) carrying three tolerated variants of plaactivat, each with a DISTINCT plaacronim so the three (acronym, phase) keys stay distinct. Per docs/04-architecture.md §4, all three must resolve to activated = True: 'Si' and ' SI ' normalize to 'si', and the absent field on row 3 falls back to the phase via ACTIVATING_PHASES (AD-6). Distinct acronyms are required because a repeated acronym would collapse the three rows into one episode (§5) and two of the three variants would never be evaluated.",
+    "plaicona": {
+      "url": "https://documents.dadesobertes.gencat.cat/cecat/docs/ico_INUNCAT.png"
+    },
+    "plaacronim": "INUNCAT",
+    "planom": "INUNCAT",
+    "plafase": "EMERGÈNCIA",
+    "plaactivat": "Si",
+    "fasedatahora": "14/08/2026 09:30",
+    "comunicatpdf": {
+      "url": "https://documents.dadesobertes.gencat.cat/cecat/docs/I-SYNTHETIC_VARIANT_SI_INUNCAT.pdf"
+    },
+    "descripcio": "Variation 'Si' SYNTHETIC  - "
+  },
+  {
+    "_comment": "SYNTHETIC, NOT observed evidence. plaactivat = ' SI ' (with surrounding spaces) must normalize to activated = True.",
+    "plaicona": {
+      "url": "https://documents.dadesobertes.gencat.cat/cecat/docs/ico_INFOCAT.png"
+    },
+    "plaacronim": "INFOCAT",
+    "planom": "INFOCAT",
+    "plafase": "EMERGÈNCIA",
+    "plaactivat": " SI ",
+    "fasedatahora": "14/08/2026 09:31",
+    "comunicatpdf": {
+      "url": "https://documents.dadesobertes.gencat.cat/cecat/docs/I-SYNTHETIC_VARIANT_SPACED_INFOCAT.pdf"
+    },
+    "descripcio": "Variation ' SI ' SYNTHETIC  - "
+  },
+  {
+    "_comment": "SYNTHETIC, NOT observed evidence. plaactivat is ABSENT from the row: the field is missing entirely, not empty. Per AD-6 the activation is derived from the phase (EMERGÈNCIA is in ACTIVATING_PHASES), so activated = True, and the coordinator must emit the '<absent>' warning once (docs/04-architecture.md §4).",
+    "plaicona": {
+      "url": "https://documents.dadesobertes.gencat.cat/cecat/docs/ico_NEUCAT.png"
+    },
+    "plaacronim": "NEUCAT",
+    "planom": "NEUCAT",
+    "plafase": "EMERGÈNCIA",
+    "fasedatahora": "14/08/2026 09:32",
+    "comunicatpdf": {
+      "url": "https://documents.dadesobertes.gencat.cat/cecat/docs/I-SYNTHETIC_VARIANT_ABSENT_NEUCAT.pdf"
+    },
+    "descripcio": "Variation absent SYNTHETIC  - "
+  }
+]

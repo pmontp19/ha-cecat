@@ -1,0 +1,30 @@
+[
+  {
+    "plaicona": {
+      "url": "https://documents.dadesobertes.gencat.cat/cecat/docs/ico_INUNCAT.png"
+    },
+    "plaacronim": "INUNCAT",
+    "planom": "INUNCAT",
+    "plafase": "ALERTA",
+    "plaactivat": "SI",
+    "fasedatahora": "16/01/2026 19:54",
+    "comunicatpdf": {
+      "url": "https://documents.dadesobertes.gencat.cat/cecat/docs/I-120133_ACTUALITZACIO--ACTIVAT_INUNCAT_202601182204.pdf"
+    },
+    "descripcio": "Alerta INUNCAT"
+  },
+  {
+    "plaicona": {
+      "url": "https://documents.dadesobertes.gencat.cat/cecat/docs/ico_NEUCAT.png"
+    },
+    "plaacronim": "NEUCAT",
+    "planom": "NEUCAT",
+    "plafase": "ALERTA",
+    "plaactivat": "SI",
+    "fasedatahora": "16/01/2026 19:12",
+    "comunicatpdf": {
+      "url": "https://documents.dadesobertes.gencat.cat/cecat/docs/I-120134_ACTUALITZACIO--ACTIVAT_NEUCAT_202601182129.pdf"
+    },
+    "descripcio": "Alerta NEUCAT 17 i 18 de gener "
+  }
+]

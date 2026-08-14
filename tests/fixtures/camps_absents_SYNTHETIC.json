@@ -1,0 +1,10 @@
+[
+  {
+    "_comment": "SYNTHETIC, NOT observed evidence. The three optional fields plaicona, comunicatpdf and descripcio are entirely ABSENT from this row (docs/01-data-sources.md trap 6: they are objects/strings that can be missing wholesale, not just null). Only the five core business fields are present, to exercise the None-handling of _url()/_text() in docs/04-architecture.md §4.",
+    "plaacronim": "TRANSCAT",
+    "planom": "TRANSCAT",
+    "plafase": "ALERTA",
+    "plaactivat": "SI",
+    "fasedatahora": "14/08/2026 09:30"
+  }
+]

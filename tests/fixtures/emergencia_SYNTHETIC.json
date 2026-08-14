@@ -1,0 +1,17 @@
+[
+  {
+    "_comment": "SYNTHETIC, NOT observed evidence. The EMERGÈNCIA phase is documented in the dataset description but has never appeared in a live payload (docs/01-data-sources.md §3.1, trap 14). This fixture only exercises the EMERGÈNCIA code path; it is not a record of any real activation. Shape mirrors a real row; the communicat URL is invented and clearly marked.",
+    "plaicona": {
+      "url": "https://documents.dadesobertes.gencat.cat/cecat/docs/ico_INUNCAT.png"
+    },
+    "plaacronim": "INUNCAT",
+    "planom": "INUNCAT",
+    "plafase": "EMERGÈNCIA",
+    "plaactivat": "SI",
+    "fasedatahora": "14/08/2026 09:30",
+    "comunicatpdf": {
+      "url": "https://documents.dadesobertes.gencat.cat/cecat/docs/I-SYNTHETIC_EMERGENCIA_INUNCAT.pdf"
+    },
+    "descripcio": "Emergència SYNTHETIC, cap observació real  - "
+  }
+]
