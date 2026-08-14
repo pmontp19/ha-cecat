@@ -14,10 +14,10 @@ from custom_components.cecat.const import (
     BASE_URL,
     DEFAULT_SCAN_INTERVAL_MIN,
     DOMAIN,
-    EVENT_ESCALATION,
     EVENT_PHASE_CHANGED,
     EVENT_PHASE_ENDED,
     EVENT_PHASE_STARTED,
+    EVENT_SERVICE_DEGRADED,
     MAX_SCAN_INTERVAL_MIN,
     MIN_SCAN_INTERVAL_MIN,
     PARAMS,
@@ -47,7 +47,7 @@ def test_event_names_are_domain_prefixed() -> None:
         EVENT_PHASE_STARTED,
         EVENT_PHASE_ENDED,
         EVENT_PHASE_CHANGED,
-        EVENT_ESCALATION,
+        EVENT_SERVICE_DEGRADED,
     ):
         assert event.startswith(f"{DOMAIN}_")
 
