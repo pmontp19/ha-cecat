@@ -37,6 +37,11 @@ DEFAULT_SCAN_INTERVAL_MIN = 5
 MIN_SCAN_INTERVAL_MIN = 1
 MAX_SCAN_INTERVAL_MIN = 60
 
+# Option key held by ``config_entry.options``. The coordinator reads this same
+# key (docs/04-architecture.md §6) and the update listener rebinds its poll
+# interval on change (docs/04-architecture.md §7).
+CONF_SCAN_INTERVAL_MIN = "scan_interval_min"
+
 # ---------------------------------------------------------------------------
 # Bus event types (docs/03-feature-spec.md §4)
 #
