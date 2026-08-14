@@ -1,8 +1,5 @@
 {
   "entity": {
-<<<<<<< HEAD
-||||||| parent of b59e78a (feat(binary-sensor): add plan_activated SAFETY entity (T7) (#8))
-=======
     "sensor": {
       "max_phase": {
         "name": "Max phase",
@@ -21,7 +18,6 @@
         "name": "Last updated"
       }
     },
->>>>>>> b59e78a (feat(binary-sensor): add plan_activated SAFETY entity (T7) (#8))
     "binary_sensor": {
       "plan_activated": {
         "name": "Active plan"
