@@ -1,7 +1,9 @@
 {
   "binary_sensor": {
-    "plan_activated": {
-      "name": "Active plan"
+    "entity": {
+      "plan_activated": {
+        "name": "Active plan"
+      }
     }
   }
 }
