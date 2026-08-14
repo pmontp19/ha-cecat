@@ -1,0 +1,7 @@
+{
+  "binary_sensor": {
+    "plan_activated": {
+      "name": "Pla activat"
+    }
+  }
+}
