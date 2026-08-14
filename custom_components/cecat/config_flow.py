@@ -1,6 +1,6 @@
 """Config flow for the cecat integration.
 
-This is a scaffold stub. The full config flow (single_config_entry, options) lands in T9.
+Scaffold stub. The full config flow (single_config_entry, options) lands in T9.
 hassfest requires this file to exist when manifest declares ``config_flow: true``.
 """
 
@@ -8,7 +8,6 @@ from __future__ import annotations
 
 from typing import Any
 
-import voluptuous as vol
 from homeassistant.config_entries import ConfigFlow
 from homeassistant.data_entry_flow import FlowResult
 
