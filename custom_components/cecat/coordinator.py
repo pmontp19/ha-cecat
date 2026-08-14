@@ -3,14 +3,17 @@
 One ``DataUpdateCoordinator`` per config entry owns the cycle-to-cycle state of
 the CECAT feed (docs/04-architecture.md §5): the previous snapshot keyed by
 ``(acronym, phase)``, the ``Last-Modified`` value for conditional caching, the
-sets of unknown literals that have already earned their single warning, and the
-resilience counters that T8 turns into the ``cecat_service_degraded`` event.
+sets of unknown literals that have already earned their single warning, and
+the resilience counters behind ``cecat_service_degraded``.
 
-This module deliberately does **not** fire bus events. Reconciling ``_previous``
-against the new snapshot and emitting ``phase_started`` / ``phase_changed`` /
-``phase_ended`` is the job of T8 (``_emit_events``); the degraded event is T8
-too. Here we only maintain the state those events need, so a frozen state never
-loses a plan and a 304 never recomputes anything.
+``_emit_events`` reconciles ``_previous`` against each new snapshot and fires
+the bus events of docs/03-feature-spec.md §4: ``phase_started`` for every key
+that appears and ``phase_ended`` for every key that disappears, always and
+without suppression, plus an additive ``phase_changed`` behind three
+conditions. The payloads are written out in full at each call site so they
+read field by field against the spec. A frozen state never loses a plan, a
+304 never recomputes anything, and a failed cycle never announces a phase
+ended.
 
 State lives on ``entry.runtime_data`` (docs/04-architecture.md §9), never on
 ``hass.data``: this is a single-config-entry service integration, and
@@ -22,6 +25,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping
 from datetime import timedelta
+from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -35,15 +39,26 @@ from .api import CecatConnectionError, CecatFormatError, fetch
 from .const import (
     DEFAULT_SCAN_INTERVAL_MIN,
     DOMAIN,
+    EVENT_PHASE_CHANGED,
+    EVENT_PHASE_ENDED,
+    EVENT_PHASE_STARTED,
+    EVENT_SERVICE_DEGRADED,
     MAX_SCAN_INTERVAL_MIN,
     MIN_SCAN_INTERVAL_MIN,
 )
-from .models import PLAN_NAMES, CecatState, Phase, PlanActivation
+from .models import (
+    PHASE_ORDER,
+    PLAN_NAMES,
+    CecatState,
+    Phase,
+    PlanActivation,
+    _severity,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
 # docs/04-architecture.md §8: three consecutive failures are a degraded source.
-# The count is maintained here; firing ``cecat_service_degraded`` is T8.
+# Crossing the threshold fires ``cecat_service_degraded`` once per streak.
 _DEGRADED_FAILURE_THRESHOLD = 3
 
 # Stale-data window (docs/04-architecture.md §8): entities go ``available =
@@ -107,9 +122,11 @@ class CecatCoordinator(TimestampDataUpdateCoordinator[CecatState]):
 
         A 304 returns ``self.data`` untouched (step 2). A failure preserves
         ``_previous`` and raises ``UpdateFailed`` so HA keeps the last good
-        ``self.data`` (step 3). A 200 builds the new state, warns once per
-        unknown literal, and makes the new picture the reconciliation baseline
-        (steps 4-7). Event emission is deferred to T8.
+        ``self.data`` (step 3): no event fires on a failed cycle, because a
+        network glitch must never announce that an emergency is over. A 200
+        builds the new state, warns once per unknown literal, diffs against
+        ``_previous`` to fire the phase events, and makes the new picture the
+        reconciliation baseline (steps 4-7).
         """
         try:
             result = await fetch(self.hass, self._last_modified)
@@ -128,22 +145,33 @@ class CecatCoordinator(TimestampDataUpdateCoordinator[CecatState]):
             # 304-before-any-data.
             return self.data if self.data is not None else CecatState()
 
-        # A 200 ends any standing failure streak (§5 step 6). The recovery
-        # event is T8.
-        self._consecutive_failures = 0
+        # A 200 ends any standing failure streak (§5 step 6). If the streak
+        # had crossed the threshold, fire the one-shot recovery event before
+        # the counters reset.
         if self._degraded:
             self._degraded = False
+            self._fire(
+                EVENT_SERVICE_DEGRADED,
+                consecutive_failures=0,
+                last_error=self.last_error,
+                recovered=True,
+            )
+        self._consecutive_failures = 0
 
         current = CecatState.from_rows(
             result.rows or [], last_modified=result.last_modified
         )
         self._warn_unknown_literals(current.by_key)
 
-        # Seed on the first cycle; from the second on, T8 diffs ``_previous``
-        # against ``current`` here. Either way the new picture becomes the
-        # baseline for the next cycle (§5 step 5).
+        # Seed on the first cycle so a restart never replays every active plan
+        # as ``started``; from the second on, diff ``_previous`` against the
+        # new snapshot and fire the phase events (§5 step 5). Either way the
+        # new picture becomes the baseline for the next cycle.
+        if self.is_first_refresh:
+            self.is_first_refresh = False
+        else:
+            self._emit_events(self._previous, current.by_key)
         self._previous = dict(current.by_key)
-        self.is_first_refresh = False
         self._last_modified = result.last_modified
         return current
 
@@ -176,11 +204,12 @@ class CecatCoordinator(TimestampDataUpdateCoordinator[CecatState]):
     # ------------------------------------------------------------------
 
     def _record_failure(self, err: Exception) -> None:
-        """Count the failure, stamp ``last_error``, flag degraded at threshold.
+        """Count the failure, stamp ``last_error``, fire degraded at threshold.
 
-        The ``cecat_service_degraded`` event and repair issue fire in T8; here
-        we only keep the streak and the one-shot flag so the threshold and the
-        recovery are detectable.
+        ``cecat_service_degraded`` fires exactly once per streak: the
+        ``_degraded`` flag keeps cycles 4, 5, ... silent until a success
+        resets it. The repair issue that completes this diagnostics story is
+        T10.
         """
         self.last_error = str(err) or type(err).__name__
         self._consecutive_failures += 1
@@ -189,6 +218,111 @@ class CecatCoordinator(TimestampDataUpdateCoordinator[CecatState]):
             and not self._degraded
         ):
             self._degraded = True
+            self._fire(
+                EVENT_SERVICE_DEGRADED,
+                consecutive_failures=self._consecutive_failures,
+                last_error=self.last_error,
+                recovered=False,
+            )
+
+    # ------------------------------------------------------------------
+    # Event emission (docs/04-architecture.md §5 "_emit_events")
+    # ------------------------------------------------------------------
+
+    def _emit_events(
+        self,
+        previous: Mapping[tuple[str, Phase], PlanActivation],
+        current: Mapping[tuple[str, Phase], PlanActivation],
+    ) -> None:
+        """Diff two snapshots by ``(acronym, phase)`` key and fire the events.
+
+        ``phase_ended`` for every removed key and ``phase_started`` for every
+        added key, always, in that order and without exceptions; then an
+        additive ``phase_changed`` per acronym whose add/remove diff is
+        exactly 1-to-1 with both phases in ``PHASE_ORDER``. No event ever
+        suppresses another, and no pairing heuristic exists beyond that rule:
+        with more than one add or one remove per acronym there is no honest
+        way to say which plan "changed phase", so none is asserted.
+
+        Only ever called from the second cycle on: the first cycle seeds
+        ``_previous`` silently so a restart does not replay every active plan
+        as ``started``.
+        """
+        added = current.keys() - previous.keys()
+        removed = previous.keys() - current.keys()
+
+        # 1. Always, without exceptions or suppression. Sorted for a
+        # deterministic order: the feed guarantees no row order (§6).
+        for key in sorted(removed):
+            old = previous[key]
+            self._fire(
+                EVENT_PHASE_ENDED,
+                acronym=old.acronym,
+                name=old.name,
+                previous_phase=old.phase,
+                previous_phase_raw=old.phase_raw,
+                duration_minutes=_duration_minutes(old),
+            )
+        for key in sorted(added):
+            new = current[key]
+            # A row never carries Phase.NONE (it only exists as the aggregate
+            # of an empty feed), but the guard costs nothing and keeps the
+            # started payload honest if that ever changes.
+            if new.phase is Phase.NONE:
+                continue
+            self._fire(
+                EVENT_PHASE_STARTED,
+                acronym=new.acronym,
+                name=new.name,
+                phase=new.phase,
+                phase_raw=new.phase_raw,
+                activated=new.activated,
+                started_at=new.started_at,
+                description=new.description,
+                communique_url=new.communique_url,
+            )
+
+        # 2. Additionally, when the three conditions hold, one change event
+        # per acronym: exactly one add, exactly one remove, and both phases
+        # in PHASE_ORDER (no UNRECOGNIZED side, AD-8).
+        for acronym in sorted({acronym for acronym, _ in added | removed}):
+            adds = [key for key in added if key[0] == acronym]
+            removes = [key for key in removed if key[0] == acronym]
+            pairs = (
+                len(adds) == 1
+                and len(removes) == 1
+                and adds[0][1] in PHASE_ORDER
+                and removes[0][1] in PHASE_ORDER
+            )
+            if pairs:
+                new = current[adds[0]]
+                old = previous[removes[0]]
+                self._fire(
+                    EVENT_PHASE_CHANGED,
+                    acronym=new.acronym,
+                    name=new.name,
+                    previous_phase=old.phase,
+                    previous_phase_raw=old.phase_raw,
+                    phase=new.phase,
+                    phase_raw=new.phase_raw,
+                    escalation=_severity(new.phase) > _severity(old.phase),
+                    activated=new.activated,
+                    started_at=new.started_at,
+                )
+
+    def _fire(self, event_type: str, **data: Any) -> None:
+        """Fire a bus event whose payload is exactly the given kwargs.
+
+        ``_fire`` adds and completes nothing from the ``PlanActivation``: each
+        payload is written out in full at its call site (§5), so the three
+        payloads read directly from the three calls and compare field by
+        field with docs/03-feature-spec.md §4.1, §4.2 and §4.3. In particular
+        ``phase_ended`` carries no ``phase`` nor ``phase_raw`` on purpose: the
+        phase of the key that vanished already travels as ``previous_phase``,
+        and carrying it twice under two names invites reading it as the
+        plan's current phase.
+        """
+        self.hass.bus.async_fire(event_type, data)
 
     # ------------------------------------------------------------------
     # Unknown-literal warnings (one per literal, not per cycle)
@@ -278,6 +412,21 @@ class CecatCoordinator(TimestampDataUpdateCoordinator[CecatState]):
     def unknown_activated(self) -> set[str]:
         """Literals seen at ``plaactivat`` that had to be derived from the phase."""
         return self._unknown_activated
+
+
+def _duration_minutes(activation: PlanActivation) -> int | None:
+    """Whole minutes the phase lasted, or ``None`` when ``started_at`` was.
+
+    Measured from ``started_at`` to now (the poll resolution, docs/03 §4.3:
+    the CECAT publishes almost no closing communiques, so the instant of an
+    end is only as precise as the polling interval). ``None``, not 0, when
+    the row carried no usable start: a row with no timestamp is still a valid
+    activation, and 0 would assert a duration we never observed.
+    """
+    if activation.started_at is None:
+        return None
+    seconds = (utcnow() - activation.started_at).total_seconds()
+    return int(seconds // 60)
 
 
 def _scan_interval_minutes(options: Mapping[str, object]) -> int:
