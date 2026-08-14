@@ -6,7 +6,6 @@ import json
 from collections.abc import Generator
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 from aioresponses import aioresponses
@@ -66,23 +65,6 @@ def clock() -> FakeClock:
     observed.
     """
     return FakeClock(datetime(2026, 8, 6, 11, 49, tzinfo=UTC))
-
-
-@pytest.fixture(autouse=True)
-def _mock_platforms() -> Generator[None]:
-    """Avoid real platform forwarding during tests.
-
-    The coordinator and platforms land in T5; until then setup is replaced by
-    a no-op forward of an empty platform tuple. The wrapper is an async
-    function so Home Assistant's setup machinery awaits it cleanly instead of
-    leaking an unawaited coroutine.
-    """
-
-    async def _setup(hass: HomeAssistant, entry: object) -> None:
-        await hass.config_entries.async_forward_entry_setups(entry, ())  # type: ignore[arg-type]
-
-    with patch("custom_components.cecat.async_setup_entry", wraps=_setup):
-        yield
 
 
 @pytest.fixture(autouse=True)

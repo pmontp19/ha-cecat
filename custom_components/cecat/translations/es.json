@@ -1,5 +1,27 @@
 {
   "entity": {
+<<<<<<< HEAD
+||||||| parent of b59e78a (feat(binary-sensor): add plan_activated SAFETY entity (T7) (#8))
+=======
+    "sensor": {
+      "max_phase": {
+        "name": "Fase máxima",
+        "state": {
+          "none": "Ninguna",
+          "prealerta": "Prealerta",
+          "alerta": "Alerta",
+          "emergencia": "Emergencia",
+          "unrecognized": "Desconocida"
+        }
+      },
+      "plans": {
+        "name": "Planes"
+      },
+      "last_updated": {
+        "name": "Última actualización"
+      }
+    },
+>>>>>>> b59e78a (feat(binary-sensor): add plan_activated SAFETY entity (T7) (#8))
     "binary_sensor": {
       "plan_activated": {
         "name": "Plan activado"

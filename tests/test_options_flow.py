@@ -23,7 +23,7 @@ from custom_components.cecat import (
 )
 from custom_components.cecat.config_flow import CONF_SCAN_INTERVAL_MIN, CecatConfigFlow
 from custom_components.cecat.const import DEFAULT_SCAN_INTERVAL_MIN, DOMAIN
-from homeassistant.config_entries import OptionsFlow
+from homeassistant.config_entries import ConfigEntryState, OptionsFlow
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -147,6 +147,9 @@ async def test_setup_registers_update_listener(hass: HomeAssistant) -> None:
     """
     entry = _entry_with_options({CONF_SCAN_INTERVAL_MIN: 5})
     entry.add_to_hass(hass)
+    # The real setup forwards to the sensor platform since T6, which HA only
+    # allows from the LOADED state.
+    entry.mock_state(hass, ConfigEntryState.LOADED)
     assert not entry.update_listeners
     with patch(
         "custom_components.cecat.coordinator.CecatCoordinator"
