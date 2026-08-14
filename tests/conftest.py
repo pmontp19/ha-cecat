@@ -69,14 +69,24 @@ def clock() -> FakeClock:
 
 @pytest.fixture(autouse=True)
 def _mock_platforms() -> Generator[None]:
-    """Avoid real platform forwarding during tests."""
-    with patch(
-        "custom_components.cecat.async_setup_entry",
-        wraps=lambda hass, entry: hass.config_entries.async_forward_entry_setups(
-            entry, ()
-        ),
-    ):
+    """Avoid real platform forwarding during tests.
+
+    The coordinator and platforms land in T5; until then setup is replaced by
+    a no-op forward of an empty platform tuple. The wrapper is an async
+    function so Home Assistant's setup machinery awaits it cleanly instead of
+    leaking an unawaited coroutine.
+    """
+
+    async def _setup(hass: HomeAssistant, entry: object) -> None:
+        await hass.config_entries.async_forward_entry_setups(entry, ())  # type: ignore[arg-type]
+
+    with patch("custom_components.cecat.async_setup_entry", wraps=_setup):
         yield
+
+
+@pytest.fixture(autouse=True)
+def _enable_custom_integrations(enable_custom_integrations: None) -> None:
+    """Let the HA flow manager load the cecat custom component."""
 
 
 @pytest.fixture
