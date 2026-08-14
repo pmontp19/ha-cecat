@@ -55,7 +55,8 @@ def test_attribution_is_non_empty_string() -> None:
 
 
 def test_manifest_loads_and_declares_domain() -> None:
-    manifest_path = Path(__file__).resolve().parents[1] / "custom_components/cecat/manifest.json"
+    repo_root = Path(__file__).resolve().parents[1]
+    manifest_path = repo_root / "custom_components/cecat/manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert manifest["domain"] == DOMAIN
     assert manifest["integration_type"] == "service"
