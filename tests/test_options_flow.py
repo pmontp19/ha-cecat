@@ -11,7 +11,7 @@ in ``hass.data[DOMAIN][entry.entry_id]`` (docs/05 T9 decision lore).
 from __future__ import annotations
 
 from datetime import timedelta
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from custom_components.cecat import (
@@ -44,6 +44,7 @@ def _coordinator() -> MagicMock:
     """A stand-in coordinator exposing the writable ``update_interval``."""
     coord = MagicMock()
     coord.update_interval = timedelta(minutes=DEFAULT_SCAN_INTERVAL_MIN)
+    coord.async_shutdown = AsyncMock(return_value=None)
     return coord
 
 
@@ -93,9 +94,8 @@ async def test_options_change_rebinds_coordinator(
     """Saving a new interval rebinds ``coordinator.update_interval`` (T9)."""
     entry = _entry_with_options({CONF_SCAN_INTERVAL_MIN: 5})
     entry.add_to_hass(hass)
-    # Register the real update listener; bypass the conftest platform patch.
-    await real_setup(hass, entry)
-    hass.data[DOMAIN][entry.entry_id] = _coordinator
+    entry.runtime_data = _coordinator
+    entry.async_on_unload(entry.add_update_listener(_async_update_listener))
     assert _coordinator.update_interval == timedelta(minutes=5)
 
     result = await hass.config_entries.options.async_init(entry.entry_id)
@@ -113,20 +113,11 @@ async def test_update_listener_rebinds_coordinator_directly(
     """The listener sets ``update_interval`` from the entry's options."""
     entry = _entry_with_options({CONF_SCAN_INTERVAL_MIN: 7})
     entry.add_to_hass(hass)
-    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = _coordinator
+    entry.runtime_data = _coordinator
 
     await _async_update_listener(hass, entry)
 
     assert _coordinator.update_interval == timedelta(minutes=7)
-
-
-async def test_update_listener_noop_without_coordinator(hass: HomeAssistant) -> None:
-    """No coordinator stored yet (T5 not landed) is a safe no-op."""
-    entry = _entry_with_options({CONF_SCAN_INTERVAL_MIN: 5})
-    entry.add_to_hass(hass)
-    hass.data.setdefault(DOMAIN, {})
-    # Must not raise.
-    await _async_update_listener(hass, entry)
 
 
 async def test_update_listener_falls_back_to_default(
@@ -135,7 +126,7 @@ async def test_update_listener_falls_back_to_default(
     """Missing option defaults to DEFAULT_SCAN_INTERVAL_MIN."""
     entry = MockConfigEntry(domain=DOMAIN, data={}, options={})
     entry.add_to_hass(hass)
-    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = _coordinator
+    entry.runtime_data = _coordinator
 
     await _async_update_listener(hass, entry)
 
@@ -152,22 +143,26 @@ async def test_setup_registers_update_listener(hass: HomeAssistant) -> None:
     entry = _entry_with_options({CONF_SCAN_INTERVAL_MIN: 5})
     entry.add_to_hass(hass)
     assert not entry.update_listeners
-    await real_setup(hass, entry)
+    with patch(
+        "custom_components.cecat.coordinator.CecatCoordinator"
+        ".async_config_entry_first_refresh",
+        new_callable=AsyncMock,
+    ):
+        await real_setup(hass, entry)
     assert len(entry.update_listeners) == 1
 
 
-async def test_unload_drops_runtime_data(
+async def test_unload_stops_coordinator(
     hass: HomeAssistant, _coordinator: MagicMock
 ) -> None:
-    """``async_unload_entry`` removes the coordinator from runtime data."""
+    """``async_unload_entry`` shuts the coordinator down."""
     entry = _entry_with_options({CONF_SCAN_INTERVAL_MIN: 5})
     entry.add_to_hass(hass)
-    await real_setup(hass, entry)
-    hass.data[DOMAIN][entry.entry_id] = _coordinator
+    entry.runtime_data = _coordinator
 
     ok = await async_unload_entry(hass, entry)
     assert ok
-    assert entry.entry_id not in hass.data.get(DOMAIN, {})
+    _coordinator.async_shutdown.assert_awaited_once()
 
 
 def test_options_handler_is_options_flow() -> None:
