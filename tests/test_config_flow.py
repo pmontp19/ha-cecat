@@ -1,35 +1,48 @@
 """Tests for the cecat config_flow stub.
 
-The full flow lands in T9; these only exercise the stub created in T1 so the
-``--cov-fail-under=95`` gate has covered code to measure against.
+Direct instantiation bypasses HA's flow manager (which needs the integration
+registered); the full e2e flow tests land in T9 with proper conftest setup.
 """
 
 from __future__ import annotations
 
-from custom_components.cecat.const import DOMAIN
-from homeassistant.data_entry_flow import FlowResultType
+from typing import Any
+from unittest.mock import MagicMock
+
+from custom_components.cecat.config_flow import CecatConfigFlow
 
 
-async def test_user_step_shows_form_when_no_input(hass) -> None:
+def _make_flow(existing_entries: list[Any] | None = None) -> CecatConfigFlow:
+    """Build a CecatConfigFlow with a fake handler context."""
+    flow = CecatConfigFlow()
+    flow.hass = MagicMock()
+    flow.hass.config_entries.flow.async_progress = MagicMock(return_value=[])
+    flow._async_current_entries = MagicMock(  # type: ignore[assignment]
+        return_value=existing_entries or []
+    )
+    return flow
+
+
+async def test_user_step_returns_form_when_no_input() -> None:
     """First call without input returns the form."""
-    flow = hass.config_entries.flow
-    result = await flow.async_init(DOMAIN, context={"source": "user"})
-    assert result["type"] is FlowResultType.FORM
+    flow = _make_flow()
+    result = await flow.async_step_user()
+    assert result["type"] == "form"
     assert result["step_id"] == "user"
 
 
-async def test_user_step_creates_entry_when_input_provided(hass) -> None:
+async def test_user_step_creates_entry_when_input_provided() -> None:
     """Submitting the form creates the entry."""
-    flow = hass.config_entries.flow
-    result = await flow.async_init(DOMAIN, context={"source": "user"}, user_input={})
-    assert result["type"] is FlowResultType.CREATE_ENTRY
+    flow = _make_flow()
+    result = await flow.async_step_user(user_input={})
+    assert result["type"] == "create_entry"
     assert result["title"] == "Plans de Protecció Civil"
     assert result["data"] == {}
 
 
-async def test_second_instance_is_aborted(hass, config_entry) -> None:
+async def test_second_instance_is_aborted() -> None:
     """A configured instance aborts a new one (single_config_entry)."""
-    flow = hass.config_entries.flow
-    result = await flow.async_init(DOMAIN, context={"source": "user"})
-    assert result["type"] is FlowResultType.ABORT
+    flow = _make_flow(existing_entries=[{"id": "existing"}])
+    result = await flow.async_step_user()
+    assert result["type"] == "abort"
     assert result["reason"] == "single_instance_allowed"
