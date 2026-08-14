@@ -6,9 +6,8 @@ The full flow lands in T9; these only exercise the stub created in T1 so the
 
 from __future__ import annotations
 
-from homeassistant.data_entry_flow import FlowResultType
-
 from custom_components.cecat.const import DOMAIN
+from homeassistant.data_entry_flow import FlowResultType
 
 
 async def test_user_step_shows_form_when_no_input(hass) -> None:
@@ -22,9 +21,7 @@ async def test_user_step_shows_form_when_no_input(hass) -> None:
 async def test_user_step_creates_entry_when_input_provided(hass) -> None:
     """Submitting the form creates the entry."""
     flow = hass.config_entries.flow
-    result = await flow.async_init(
-        DOMAIN, context={"source": "user"}, user_input={}
-    )
+    result = await flow.async_init(DOMAIN, context={"source": "user"}, user_input={})
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert result["title"] == "Plans de Protecció Civil"
     assert result["data"] == {}
