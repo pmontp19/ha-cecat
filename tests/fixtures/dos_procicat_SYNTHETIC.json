@@ -1,0 +1,32 @@
+[
+  {
+    "_comment": "SYNTHETIC, NOT observed evidence. Two rows share the SAME plaacronim (PROCICAT) in DIFFERENT phases (PREALERTA and ALERTA). This shape is an inference from docs/01-data-sources.md §3.2 note 2, never observed live: PROCICAT is the umbrella multirisk plan (992 activations 2017-2022, the highest of any plan) so concurrent phases are plausible, but no capture shows them. The two rows must reconcile as two distinct episodes keyed by (acronym, phase), NOT collapse into one (docs/04-architecture.md §5). planom also differs across the two rows to reproduce the PROCICAT subplan-name ambiguity of §3.2 note 2 (the subplan acronym is unknown; four spellings exist across sources). The integration ignores planom (trap 4), so this only documents the ambiguity.",
+    "plaicona": {
+      "url": "https://documents.dadesobertes.gencat.cat/cecat/docs/ico_PROCICAT.png"
+    },
+    "plaacronim": "PROCICAT",
+    "planom": "PROCICAT",
+    "plafase": "PREALERTA",
+    "plaactivat": "NO",
+    "fasedatahora": "13/08/2026 19:18",
+    "comunicatpdf": {
+      "url": "https://documents.dadesobertes.gencat.cat/cecat/docs/I-SYNTHETIC_PREALERTA_PROCICAT.pdf"
+    },
+    "descripcio": "Prealerta PROCICAT SYNTHETIC  - "
+  },
+  {
+    "_comment": "SYNTHETIC, NOT observed evidence. Second PROCICAT row: same acronym, different phase (ALERTA) and different planom, exercising the (acronym, phase) reconciliation. See the _comment on row 1.",
+    "plaicona": {
+      "url": "https://documents.dadesobertes.gencat.cat/cecat/docs/ico_PROCICAT_FERROCARRIL.png"
+    },
+    "plaacronim": "PROCICAT",
+    "planom": "PROCICAT - Ferrocarril",
+    "plafase": "ALERTA",
+    "plaactivat": "SI",
+    "fasedatahora": "14/08/2026 09:30",
+    "comunicatpdf": {
+      "url": "https://documents.dadesobertes.gencat.cat/cecat/docs/I-SYNTHETIC_ALERTA_PROCICAT_FERROCARRIL.pdf"
+    },
+    "descripcio": "Alerta PROCICAT Ferrocarril SYNTHETIC  - "
+  }
+]

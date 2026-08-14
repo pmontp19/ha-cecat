@@ -1,0 +1,17 @@
+[
+  {
+    "_comment": "SYNTHETIC, NOT observed evidence. plafase = 'MÀXIMA' is not in {PREALERTA, ALERTA, EMERGÈNCIA}, so normalise_phase() must map it to Phase.UNRECOGNIZED without raising (docs/04-architecture.md §4, docs/01-data-sources.md trap 5: the set of plans/phases is not closed). The accent is deliberate: it also checks that diacritic-stripping does not turn an unknown value into a recognized one.",
+    "plaicona": {
+      "url": "https://documents.dadesobertes.gencat.cat/cecat/docs/ico_PROCICAT.png"
+    },
+    "plaacronim": "PROCICAT",
+    "planom": "PROCICAT",
+    "plafase": "MÀXIMA",
+    "plaactivat": "SI",
+    "fasedatahora": "14/08/2026 09:30",
+    "comunicatpdf": {
+      "url": "https://documents.dadesobertes.gencat.cat/cecat/docs/I-SYNTHETIC_FASE_DESCONEGUDA_PROCICAT.pdf"
+    },
+    "descripcio": "Fase desconeguda SYNTHETIC  - "
+  }
+]
