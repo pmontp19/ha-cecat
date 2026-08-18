@@ -5,20 +5,19 @@ release, architecture, and sharp-edge notes that should travel with the code.
 
 ## State of the repository
 
-Landed: the data layer (`api.py` T4, `models.py` T3, `const.py` T1, `config_flow.py` T9,
-`coordinator.py` + `__init__.py` T5), the entities (T6 sensors, T7 binary sensor), the bus
-events (T8 `_emit_events`: `phase_started`/`phase_changed`/`phase_ended`/`service_degraded`)
-and the notification blueprint (T12: `blueprints/automation/cecat/plan_notification.yaml`,
-`tests/test_blueprint.py`). Remaining: T10, T11 (translations/icons), T13 (README,
-`quality_scale.yaml`, v0.1.0). The design is finished and lives in [`docs/`](docs/)
+The integration is feature-complete up to T10: data layer (`api.py` T4, `models.py` T3,
+`const.py` T1, `config_flow.py` T9), coordinator with live bus events (`coordinator.py` +
+`__init__.py`, T5+T8), entities (`entity.py` + `sensor.py` T6, `binary_sensor.py` T7) and
+diagnostics (`diagnostics.py` T10: config-entry handler per §3.6, one test per §8 resilience
+row in `tests/test_resilience.py`). Next: T11 translations/icons, T12 blueprint, T13 README.
+The design is finished and lives in [`docs/`](docs/)
 (`01` to `05`): read `docs/01-data-sources.md` before touching anything that talks to the data
 source, `docs/04-architecture.md` §5 for the coordinator cycle and reconciliation key, and §11 for
 the fourteen architectural decisions and why each alternative was rejected.
 
-The blueprint listens to `cecat_plan_phase_started` only, binds `min_phase`/`plans` through an
-automation-level `variables:` block (`!input` never substitutes inside Jinja strings), and its
-message is the §5.2 fragment of `docs/03-feature-spec.md`, the only copyable one: keep it that
-way when editing.
+The coordinator owns the cycle-to-cycle state: `_previous` keyed by `(acronym, phase)`,
+`_last_modified`, the three `_unknown_*` literal sets, resilience counters, and
+`last_raw_response` (the verbatim rows of the last 200, exported by diagnostics).
 
 ## Language
 
