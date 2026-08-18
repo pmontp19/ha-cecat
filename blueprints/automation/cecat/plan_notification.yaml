@@ -1,0 +1,170 @@
+blueprint:
+  name: "Protecció Civil Catalunya - Notificació de fase de pla"
+  description: >-
+    Envia una notificació quan un pla de Protecció Civil de Catalunya entra en
+    una fase (INUNCAT, PROCICAT, NEUCAT, ...), via la integració ha-cecat.
+
+    Escolta UN SOL event: cecat_plan_phase_started, que la integració emet per
+    a cada fase que comença, sempre: una fila que apareix de nou, una que puja
+    de fase i una que hi baixa. Per això el missatge és un estat neutre
+    ("INUNCAT: ara en fase ALERTA") i no afirma cap direcció ni cap origen:
+    l'event no porta prou informació per distingir-les honestament.
+
+    cecat_plan_phase_changed queda per a qui vulgui semàntica d'escalada
+    estrictament, però aquí no es fa servir, per dues raons: escoltar els dos
+    events alhora donaria DUES notificacions per una sola transició, i a més
+    aquell carril hereta el fals positiu de l'obert 6 (dos plans d'actuació
+    que comparteixen plaacronim poden semblar una escalada d'un de sol).
+
+    El filtre min_phase descarta les fases menors; el defecte és "alerta" i
+    no "prealerta" perquè amb 589 prealertes en 623 dies notificar-les totes
+    seria soroll. Una fase no reconeguda (unrecognized) sempre passa el
+    filtre, amb qualsevol valor de min_phase: en protecció civil, un
+    desconegut silenciós és pitjor que una notificació de més, i el missatge
+    ho diu mostrant el literal cru que ha arribat (phase_raw).
+
+    Consulta docs/03-feature-spec.md §4 i §5 del repositori per als payloads
+    exactes dels events i l'especificació d'aquest blueprint.
+  domain: automation
+  source_url: https://github.com/pmontp19/ha-cecat/blob/main/blueprints/automation/cecat/plan_notification.yaml
+  homeassistant:
+    # The automation-level `variables:` block that binds `!input` values for
+    # use inside condition/action templates, and the modern trigger/condition/
+    # action keys, require a recent automations schema. 2024.10 is a
+    # conservative floor (same choice as the ha-avisoscat sibling blueprint).
+    min_version: 2024.10.0
+  input:
+    notify_target:
+      name: Dispositius on notificar
+      description: >-
+        Dispositius que rebran la notificació, via l'app de Home Assistant al
+        mòbil. Pots triar-ne més d'un. Si el teu canal no és cap dispositiu
+        (un grup notify, el Telegram...), el missatge per replicar-ho en una
+        automatització manual és al README del repositori.
+      selector:
+        device:
+          integration: mobile_app
+          multiple: true
+    min_phase:
+      name: Fase mínima
+      description: >-
+        Notifica només les fases d'aquest nivell o superior. Per defecte
+        "alerta": amb 589 prealertes en 623 dies, notificar-les totes seria
+        soroll i faria silenciar el blueprint, perdent també les alertes. Una
+        fase no reconeguda sempre passa el filtre, sigui quin sigui aquest
+        valor.
+      default: alerta
+      selector:
+        select:
+          mode: dropdown
+          options:
+            - label: Prealerta
+              value: prealerta
+            - label: Alerta
+              value: alerta
+            - label: Emergència
+              value: emergencia
+    plans:
+      name: Plans
+      description: >-
+        Quins plans notificar, per acrònim. Buit (per defecte) vol dir tots.
+        La llista només cobreix els 13 acrònims coneguts de la font: qualsevol
+        acrònim nou passa el filtre només quan la llista és buida.
+      default: []
+      selector:
+        select:
+          multiple: true
+          options:
+            - label: INUNCAT (Inundacions)
+              value: INUNCAT
+            - label: PROCICAT (Territorial multirisc)
+              value: PROCICAT
+            - label: VENTCAT (Ventades)
+              value: VENTCAT
+            - label: INFOCAT (Incendis forestals)
+              value: INFOCAT
+            - label: AEROCAT (Aeronàutic)
+              value: AEROCAT
+            - label: TRANSCAT (Transport de mercaderies perilloses)
+              value: TRANSCAT
+            - label: NEUCAT (Nevades)
+              value: NEUCAT
+            - label: PLASEQTA (Químic, sector de Tarragona)
+              value: PLASEQTA
+            - label: PLASEQCAT (Químic en instal·lacions)
+              value: PLASEQCAT
+            - label: ALLAUCAT (Allaus)
+              value: ALLAUCAT
+            - label: CAMCAT (Contaminació marina)
+              value: CAMCAT
+            - label: RADCAT (Radiològic)
+              value: RADCAT
+            - label: SISMICAT (Sísmic)
+              value: SISMICAT
+
+# More than one plan can start in the same polling cycle; each trigger runs
+# independently (queued) instead of cancelling the previous one.
+mode: queued
+max: 10
+
+# ONE trigger only: cecat_plan_phase_started. Adding cecat_plan_phase_changed
+# here would send TWO notifications for a single alerta -> emergencia
+# transition, because phase_changed is emitted IN ADDITION to the
+# phase_ended + phase_started pair (docs/03-feature-spec.md §4).
+triggers:
+  - trigger: event
+    event_type: cecat_plan_phase_started
+
+# `!input` substitutes at the YAML node level only, never inside a Jinja
+# string, so the condition templates below could never see the raw input
+# values. Binding them here as automation-level variables is what makes
+# `ordre.index(min_phase)` and the `plans` filter resolve at render time
+# (docs/03-feature-spec.md §5.1). No other name is bound: `acronym`
+# and friends stay reachable only as `trigger.event.data.*`.
+variables:
+  min_phase: !input min_phase
+  plans: !input plans
+
+conditions:
+  # The exact form of docs/03-feature-spec.md §5.1: `unrecognized` is
+  # checked BEFORE any index() call, and the short-circuiting `or` is what
+  # guarantees the order-less value never reaches index() (which would raise
+  # ValueError and kill the template). Operand order matters; do not invert.
+  - condition: template
+    value_template: >-
+      {% set ordre = ['prealerta', 'alerta', 'emergencia'] %}
+      {{ trigger.event.data.phase == 'unrecognized'
+         or ordre.index(trigger.event.data.phase) >= ordre.index(min_phase) }}
+  # Empty `plans` means "all plans".
+  - condition: template
+    value_template: >-
+      {{ plans | length == 0 or trigger.event.data.acronym in plans }}
+
+actions:
+  - variables:
+      # The message fragment of docs/03-feature-spec.md §5.2, verbatim: the
+      # only copyable message in the whole doc set. Neutral state for a
+      # recognized phase, an honest "not recognized" text with the raw literal
+      # otherwise. No direction, no origin: the event cannot support either
+      # (docs/03-feature-spec.md §4.1).
+      notify_message: >-
+        {% if trigger.event.data.phase == 'unrecognized' %}
+          {{ trigger.event.data.acronym }}: fase NO RECONEGUDA ("{{ trigger.event.data.phase_raw }}")
+        {% else %}
+          {{ trigger.event.data.acronym }}: ara en fase {{ trigger.event.data.phase | upper }}
+        {% endif %}
+  - action: notify.send_message
+    data:
+      title: Protecció Civil Catalunya
+      message: >-
+        {{ notify_message | trim }}
+        {%- if trigger.event.data.description %}
+
+        {{ trigger.event.data.description | trim }}
+        {%- endif %}
+        {%- if trigger.event.data.communique_url %}
+
+        {{ trigger.event.data.communique_url }}
+        {%- endif %}
+    target:
+      device_id: !input notify_target
