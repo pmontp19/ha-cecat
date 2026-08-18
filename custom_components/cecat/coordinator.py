@@ -99,6 +99,13 @@ class CecatCoordinator(TimestampDataUpdateCoordinator[CecatState]):
         # ``If-Modified-Since`` for the next fetch; set on every 200, untouched
         # on a 304.
         self._last_modified: str | None = None
+        # The decoded rows of the last successful 200, kept verbatim for the
+        # diagnostics export (docs/03-feature-spec.md §3.6): every field the
+        # source sent, including the ones the parser never reads, exactly as
+        # decoded. ``None`` until a first success; a 304 or a failure leaves
+        # the last good copy in place, which is still the truth about what
+        # the source last sent.
+        self._last_raw_response: list[dict[str, Any]] | None = None
         # One warning per literal, across cycles (§5 "Literals desconeguts").
         # Three independent sets so the three traps never mask each other.
         self._unknown_phases: set[str] = set()
@@ -173,6 +180,7 @@ class CecatCoordinator(TimestampDataUpdateCoordinator[CecatState]):
             self._emit_events(self._previous, current.by_key)
         self._previous = dict(current.by_key)
         self._last_modified = result.last_modified
+        self._last_raw_response = result.rows
         return current
 
     # ------------------------------------------------------------------
@@ -387,6 +395,16 @@ class CecatCoordinator(TimestampDataUpdateCoordinator[CecatState]):
     def last_modified(self) -> str | None:
         """The ``Last-Modified`` to echo back as ``If-Modified-Since``."""
         return self._last_modified
+
+    @property
+    def last_raw_response(self) -> list[dict[str, Any]] | None:
+        """The decoded rows of the last successful 200, verbatim (§3.6).
+
+        Every field of every dict row exactly as the source sent it. The only
+        thing absent here is what ``api.fetch`` already discarded at ``debug``
+        (non-dict list elements), which never reaches the coordinator.
+        """
+        return self._last_raw_response
 
     @property
     def consecutive_failures(self) -> int:
