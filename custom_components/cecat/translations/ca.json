@@ -1,4 +1,28 @@
 {
+  "config": {
+    "step": {
+      "user": {
+        "title": "Plans de Protecció Civil",
+        "description": "Consulta el canal de dades obertes de la Generalitat amb les activacions de plans de protecció civil (CECAT). Una resposta buida és un estat vàlid: la majoria de dies no hi ha cap pla actiu.",
+        "data": {
+          "scan_interval_min": "Interval de consulta (minuts)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "No s'ha pogut connectar amb la font de dades. Comproveu la connexió i torneu-ho a provar."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opcions dels Plans de Protecció Civil",
+        "data": {
+          "scan_interval_min": "Interval de consulta (minuts)"
+        }
+      }
+    }
+  },
   "entity": {
     "sensor": {
       "max_phase": {

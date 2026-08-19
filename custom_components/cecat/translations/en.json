@@ -1,4 +1,28 @@
 {
+  "config": {
+    "step": {
+      "user": {
+        "title": "Civil protection plans",
+        "description": "Polls the Generalitat of Catalonia's open-data feed of civil-protection plan activations (CECAT). An empty feed is a valid state: on most days no plan is active.",
+        "data": {
+          "scan_interval_min": "Polling interval (minutes)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to the data source. Check your connection and try again."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Civil protection plans options",
+        "data": {
+          "scan_interval_min": "Polling interval (minutes)"
+        }
+      }
+    }
+  },
   "entity": {
     "sensor": {
       "max_phase": {

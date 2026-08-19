@@ -3,6 +3,17 @@
     "sensor": {
       "max_phase": {
         "default": "mdi:shield-alert-outline"
+      },
+      "plans": {
+        "default": "mdi:file-document-multiple-outline"
+      },
+      "last_updated": {
+        "default": "mdi:clock-outline"
+      }
+    },
+    "binary_sensor": {
+      "plan_activated": {
+        "default": "mdi:shield-check-outline"
       }
     }
   }
