@@ -1,0 +1,126 @@
+# yamllint disable rule:line-length
+---
+# Home Assistant Integration Quality Scale, bronze tier
+# (https://developers.home-assistant.io/docs/core/integration-quality-scale/rules/).
+# Every bronze rule is either done or exempt, with the justification inline.
+rules:
+  action-setup:
+    status: exempt
+    comment: >-
+      The integration registers no service actions: the four bus events plus the
+      blueprint are the chosen UX, as decided in docs/03-feature-spec.md section 7
+      (same choice as the sibling integrations).
+  appropriate-polling:
+    status: done
+    comment: >-
+      Default 5 min, user-tunable 1..60 via the options flow, and tuned to the
+      measured feed cadence (1.84 communiques/day over 623 days, p05 of 14 min
+      between consecutive ones). Every cycle sends If-Modified-Since and the
+      source answers 304 when nothing changed, so the frequent poll is cheap.
+  brands:
+    status: done
+    comment: >-
+      custom_components/cecat/brand/icon.png ships with the repository. The
+      official per-plan plaicona assets are deliberately not used: the open-data
+      licence restricts them to plan identification by the administration
+      (docs/01-data-sources.md section 11, point 3).
+  common-modules:
+    status: done
+    comment: >-
+      api.py, models.py, const.py and entity.py hold every shared pattern and are
+      consumed by the coordinator and by both platforms; nothing is duplicated
+      between sensor.py and binary_sensor.py.
+  config-flow:
+    status: done
+    comment: >-
+      config_flow is true in manifest.json. Single-step flow (poll interval) plus
+      an options flow that rebinds the coordinator interval without a reload.
+  config-flow-test-coverage:
+    status: done
+    comment: >-
+      tests/test_config_flow.py and tests/test_options_flow.py cover the success
+      path (including the empty list as a valid state), the cannot_connect error
+      and the duplicate-entry abort.
+  dependency-transparency:
+    status: exempt
+    comment: >-
+      requirements is empty: the integration uses only the Python standard
+      library and homeassistant.helpers, so there is no third-party dependency
+      to declare or pin.
+  docs-actions:
+    status: exempt
+    comment: >-
+      There are no service actions to document. The README documents the four
+      bus events and the automation recipes built on them instead.
+  docs-conditions:
+    status: exempt
+    comment: >-
+      The integration provides no conditions. The README ships a copyable Jinja
+      template condition for per-plan automation (the plans attribute pattern).
+  docs-triggers:
+    status: exempt
+    comment: >-
+      The integration provides no custom trigger platform. The README documents
+      the four bus events and how to trigger automations on them via the generic
+      event trigger.
+  docs-high-level-description:
+    status: done
+    comment: >-
+      The README opens with what CECAT plan activations are, which source the
+      integration reads, and the phase-vs-activation distinction that governs
+      every entity and event name.
+  docs-installation-instructions:
+    status: done
+    comment: >-
+      README has step-by-step HACS installation via a custom repository (the
+      documented distribution channel, with no default-HACS promise) plus a
+      manual copy alternative, and the config-flow steps to add the entry.
+  docs-removal-instructions:
+    status: done
+    comment: >-
+      README section "Eliminació": delete the config entry, uninstall via HACS
+      (or remove custom_components/cecat), and optionally remove the imported
+      blueprint. No personal data is stored, so nothing else needs purging.
+  entity-event-setup:
+    status: exempt
+    comment: >-
+      Entities subscribe to nothing. The DataUpdateCoordinator polls the feed and
+      pushes reconciled state; entities only read entry.runtime_data
+      (docs/04-architecture.md section 5).
+  entity-unique-id:
+    status: done
+    comment: >-
+      Every entity gets "{entry_id}_{description.key}" in
+      custom_components/cecat/entity.py; unique and stable across reinstalls of
+      the same entry.
+  has-entity-name:
+    status: done
+    comment: >-
+      _attr_has_entity_name is True on the shared base entity, and every entity
+      sets a translation_key with names in translations/{ca,es,en}.json, so
+      friendly names are "Proteccio Civil Catalunya <entity>".
+  runtime-data:
+    status: done
+    comment: >-
+      CecatConfigEntry is ConfigEntry[CecatCoordinator]: the coordinator lives on
+      entry.runtime_data and there is no hass.data dict at all
+      (custom_components/cecat/__init__.py).
+  test-before-configure:
+    status: done
+    comment: >-
+      The config flow performs one live fetch before creating the entry: any
+      list body (including the valid empty []) creates it, while timeout,
+      non-2xx or a non-list body reports cannot_connect
+      (custom_components/cecat/config_flow.py).
+  test-before-setup:
+    status: done
+    comment: >-
+      async_setup_entry awaits async_config_entry_first_refresh(), so a failing
+      source aborts setup as ConfigEntryNotReady instead of producing entities
+      with no data.
+  unique-config-entry:
+    status: done
+    comment: >-
+      single_config_entry is true in manifest.json, and the flow additionally
+      sets a fixed unique_id and calls _abort_if_unique_id_configured, so a
+      second instance is aborted even if the manifest flag is bypassed.
