@@ -1,6 +1,6 @@
 [project]
 name = "ha-cecat"
-version = "0.0.0"
+version = "0.1.0"
 description = "Home Assistant custom integration for Catalonia's civil-protection plan activations (CECAT)."
 requires-python = ">=3.13"
 license = { text = "MIT" }
