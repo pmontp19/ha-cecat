@@ -2,11 +2,11 @@
 name = "ha-cecat"
 version = "0.0.0"
 description = "Home Assistant custom integration for Catalonia's civil-protection plan activations (CECAT)."
-requires-python = ">=3.13"
+requires-python = ">=3.14"
 license = { text = "MIT" }
 
 [tool.ruff]
-target-version = "py313"
+target-version = "py314"
 line-length = 88
 src = ["custom_components/cecat"]
 # docs/ is the design contract (AGENTS.md): its Python code fences are

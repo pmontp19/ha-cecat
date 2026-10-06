@@ -51,7 +51,7 @@ d'escriure una sola entitat.
 **Criteris d'acceptació.**
 - [ ] `manifest.json` amb `domain: cecat`, `integration_type: service`, `iot_class: cloud_polling`, `requirements: []`, `config_flow: true`, **`single_config_entry: true`**
 - [ ] `const.py` conté `BASE_URL`, `PARAMS = {"$select": ":*,*"}`, `DEFAULT_SCAN_INTERVAL_MIN = 5`, `MIN/MAX = 1/60`, els 4 noms d'event i `ATTRIBUTION`
-- [ ] `ruff` amb el mateix conjunt de regles que `ha-incendiscat` (`E,W,F,I,UP,B,SIM,RUF,ASYNC,PL`, `line-length = 88`, `py313`)
+- [ ] `ruff` amb el mateix conjunt de regles que `ha-incendiscat` (`E,W,F,I,UP,B,SIM,RUF,ASYNC,PL`, `line-length = 88`, `py314`)
 - [ ] `validate.yml` amb `hassfest` i `hacs/action` (`category: integration`), amb cron diari
 
 **Verificació.** `ruff check .` net; `validate.yml` verd en el primer push.

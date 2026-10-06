@@ -841,14 +841,14 @@ Tres workflows, còpia dels d'`ha-incendiscat` amb els SHA pinats:
 
 | Workflow | Contingut |
 | --- | --- |
-| `ci.yml` | `uv venv --python 3.13`, `ruff check .`, `ruff format --check .`, `pytest --cov=custom_components/cecat --cov-fail-under=95` |
+| `ci.yml` | `uv venv --python 3.14`, `ruff check .`, `ruff format --check .`, `pytest --cov=custom_components/cecat --cov-fail-under=95` |
 | `validate.yml` | `hassfest` + `hacs/action` amb `category: integration`. Push, PR, cron diari i `workflow_dispatch` |
 | `release-please.yml` | Conventional Commits → versió, `CHANGELOG.md` i `manifest.json`. **Mai editar la versió a mà** |
 
 `requirements_dev.txt` amb versions fixades (`pytest`, `pytest-cov`,
 `pytest-homeassistant-custom-component`, `homeassistant`, `ruff`, `aioresponses`) i `dependabot`
 per mantenir-les. `pyproject.toml` amb el mateix conjunt de regles de `ruff` que el germà
-(`E,W,F,I,UP,B,SIM,RUF,ASYNC,PL`, `line-length = 88`, `target-version = "py313"`).
+(`E,W,F,I,UP,B,SIM,RUF,ASYNC,PL`, `line-length = 88`, `target-version = "py314"`).
 
 ---
 

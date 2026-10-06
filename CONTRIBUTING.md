@@ -3,7 +3,7 @@
 ## Development environment
 
 ```bash
-uv venv --python 3.13 .venv
+uv venv --python 3.14 .venv
 uv pip install --python .venv/bin/python -r requirements_dev.txt
 
 .venv/bin/ruff check .
