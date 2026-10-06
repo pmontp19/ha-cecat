@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Generator
+from collections.abc import AsyncGenerator, Generator
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -70,6 +70,19 @@ def clock() -> FakeClock:
 @pytest.fixture(autouse=True)
 def _enable_custom_integrations(enable_custom_integrations: None) -> None:
     """Let the HA flow manager load the cecat custom component."""
+
+
+@pytest.fixture(autouse=True)
+async def _shutdown_coordinators(hass: HomeAssistant) -> AsyncGenerator[None]:
+    """Cancel coordinator refresh timers of entries a test set up directly.
+
+    Tests that call ``async_setup_entry`` without unloading would otherwise
+    trip HA's lingering-timer check.
+    """
+    yield
+    for entry in hass.config_entries.async_entries(DOMAIN):
+        if (coordinator := getattr(entry, "runtime_data", None)) is not None:
+            await coordinator.async_shutdown()
 
 
 @pytest.fixture

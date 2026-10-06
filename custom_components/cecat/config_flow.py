@@ -75,7 +75,7 @@ class CecatConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             try:
                 await fetch(self.hass, last_modified=None)
-            except (CecatConnectionError, CecatFormatError):
+            except CecatConnectionError, CecatFormatError:
                 errors["base"] = "cannot_connect"
             else:
                 await self.async_set_unique_id(DOMAIN)

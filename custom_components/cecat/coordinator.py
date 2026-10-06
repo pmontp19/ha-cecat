@@ -456,6 +456,6 @@ def _scan_interval_minutes(options: Mapping[str, object]) -> int:
     raw = options.get(CONF_SCAN_INTERVAL)
     try:
         minutes = int(raw) if raw is not None else DEFAULT_SCAN_INTERVAL_MIN
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return DEFAULT_SCAN_INTERVAL_MIN
     return max(MIN_SCAN_INTERVAL_MIN, min(MAX_SCAN_INTERVAL_MIN, minutes))

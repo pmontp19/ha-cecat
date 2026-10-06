@@ -236,7 +236,7 @@ class LastUpdatedSensor(CecatEntity, SensorEntity):
             return None
         try:
             parsed = parsedate_to_datetime(raw)
-        except (ValueError, TypeError):
+        except ValueError, TypeError:
             # RFC 822 dates are the documented format, but the source is
             # free text that can change without notice: an unreadable
             # header degrades to the documented empty value.
